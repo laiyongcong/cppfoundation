@@ -1,0 +1,39 @@
+if (CMAKE_BUILD_TYPE STREQUAL "")
+  # CMake defaults to leaving CMAKE_BUILD_TYPE empty. This screws up
+  # differentiation between debug and release builds.
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose the type of build, options are: None (CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif (CMAKE_BUILD_TYPE STREQUAL "")
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/SDK" CACHE PATH "Install prefix" FORCE)
+	message(STATUS "You'd better set the install prefix")
+endif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+
+# Windows cross compile android will set WIN32, and these flags are only available on windows
+if(WIN32 AND (NOT ANDROID))
+	set(CMAKE_USE_RELATIVE_PATHS TRUE)
+	# set(CMAKE_SUPPRESS_REGENERATION TRUE)
+		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Z7")
+		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Z7")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Oi /Ot /Oy /GL")
+		set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Oi /Ot /Oy /GL")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Od /Ob0")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} /Od /Ob0")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG" )
+    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "/LTCG" )
+	add_definitions(/wd4996 /wd4351 /wd4100 /wd4200 /wd4189 /wd4505 /wd4245 /wd4244 /wd4389 /wd4315)
+	add_definitions(/MP)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /IGNORE:4099")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /IGNORE:4099")
+	set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /IGNORE:4099")
+endif()
+
+if(UNIX AND (NOT ANDROID) AND (NOT APPLE))
+  add_definitions(-g -rdynamic)
+endif()
+
+if(ANDROID)
+	set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DNO_BZIP2" )
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNO_BZIP2")	
+endif()
