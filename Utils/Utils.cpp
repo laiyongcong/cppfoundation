@@ -1,5 +1,5 @@
 #include "Utils.h"
-#include "Reflection.h"
+#include "RefelectionHelper.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN
@@ -56,42 +56,6 @@ namespace cppfd {
   }
 }
 
- bool Utils::IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr /*= 0*/){
-  if (from_cls == to_cls) return true;
-
-  if (from_cls == typeid(void*)) {
-    return to_cls == typeid(const void*);
-  }
-  auto fromClass = Class::FindClassByType(from_cls);
-  auto toClass = Class::FindClassByType(to_cls);
-
-  if (fromClass.first != Class::ClassTypeNum && fromClass.first == toClass.first){
-    if (toClass.second->IsSameOrSuperOf(*fromClass.second))
-      return true;
-    else if ((fromClass.first == Class::ClassPointerType || fromClass.first == Class::ClassConstPointerType) && objptr != nullptr) {
-      void** objptrptr = static_cast<void**>(objptr);
-      return toClass.second->DynamicCastableFromSuper(*objptrptr, fromClass.second);
-    }
-  }
-
-  if (fromClass.first == Class::ClassNormalType) {
-    return toClass.first == Class::ClassConstType && toClass.second->IsSameOrSuperOf(*fromClass.second);
-  } else if (fromClass.first == Class::ClassPointerType) {
-    if (to_cls == typeid(void*) || to_cls == typeid(const void*)) return true;
-    if (toClass.first == Class::ClassConstPointerType) {
-      if (toClass.second->IsSameOrSuperOf(*fromClass.second)) return true;
-      else if (objptr != nullptr){
-        void** objptrptr = static_cast<void**>(objptr);
-        return toClass.second->DynamicCastableFromSuper(*objptrptr, fromClass.second);
-      }
-    }
-  } else if (fromClass.first == Class::ClassConstPointerType) {
-    return (to_cls == typeid(const void*));
-  }
-
-  return false;
- }
-
 bool Utils::StringStartWith(const String& inputString, const String& strPattern, bool bIgnoreCase /*= true*/) {
   size_t nThisLen = inputString.length();
   size_t nPatternLen = strPattern.length();
@@ -129,5 +93,20 @@ bool Utils::StringEndWith(const String& inputString, const String& strPattern, b
  }
 
  void Utils::String2LowerCase(String& strString) { std::transform(strString.begin(), strString.end(), strString.begin(), ::tolower); }
+
+
+ class TestClass
+ {
+ public:
+  TestClass(){}
+  TestClass(int a) : mA(a), mStr(""){}
+
+  int mA;
+  String mStr;
+
+  void SetA(int a) { mA = a; }
+  int GetA() const { return mA; }
+  static void TestStaticFunc(int a, String strMsg) { printf("passed %d, %s\n", a, strMsg.c_str());}
+ };
 
  }  // namespace cppfd
