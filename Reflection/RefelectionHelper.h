@@ -81,13 +81,13 @@ class ReflectiveClass {
      return *this;
    }
 
-   template <>
+   /*template <>
    ReflectiveClass& RefConstructor() {
      auto pConstructorCallable = CreateStaticCallable<T*>(&NewInstance<T>);
      auto pAllocaCallable = CreateStaticCallable<T*>(CreateAllocaFuncPtr<T>(&NewInstance<T>));
      ConstructorMethodRegistor reigst(pConstructorCallable, pAllocaCallable, mClass.get(), AccessPublic, mClass->GetName().c_str(), mClass->GetName().c_str(), pConstructorCallable->GetArgsString().c_str());
      return *this;
-   }
+   }*/
 
   private:
    template <typename C, typename... Args>
@@ -98,10 +98,10 @@ class ReflectiveClass {
      return &Allocate<C, Args...>;
    }
 
-   template <typename C>
+   /*template <typename C>
    static C* (*CreateAllocaFuncPtr(C* (*)()))(void*) {
      return &Allocate<C>;
-   }
+   }*/
 
    static void* NullSuperCast(void* p) { return nullptr; }
 
@@ -109,26 +109,21 @@ class ReflectiveClass {
 
    template <typename SuperT>
    static void* SuperCast(void* p) {
-    return dynamic_cast<T*>(static_cast<SuperT*>(p));
+     return dynamic_cast<T*>(static_cast<SuperT*>(p));
    }
 
    template <typename SuperT>
    static const void* SuperCastConst(const void* p) {
-    return dynamic_cast<const T*>(static_cast<const SuperT*>(p));
+     return dynamic_cast<const T*>(static_cast<const SuperT*>(p));
    }
 
    template <typename C, typename... Args>
    static C* NewInstance(Args... args) {
-    return new C(args...);
-   }
-
-   template <typename C>
-   static C* NewInstance() {
-    return new C();
+     return new C(args...);
    }
 
    void InitClass(const char* szName, const Class* pSuper, Class::SuperCastFuncPtr superCast, Class::SuperCastConstFuncPtr superCastConst) {
-    mClass.reset(new Class(szName, pSuper, sizeof(T), superCast, superCastConst, typeid(T), typeid(const T), typeid(T*), typeid(const T*)));
+     mClass.reset(new Class(szName, pSuper, sizeof(T), superCast, superCastConst, typeid(T), typeid(const T), typeid(T*), typeid(const T*)));
    }
 
    template <typename F, int N>

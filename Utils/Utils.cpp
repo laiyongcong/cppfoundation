@@ -1,5 +1,4 @@
 #include "Utils.h"
-#include "RefelectionHelper.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 #  ifndef WIN32_LEAN_AND_MEAN
 #    define WIN32_LEAN_AND_MEAN
@@ -93,20 +92,5 @@ bool Utils::StringEndWith(const String& inputString, const String& strPattern, b
  }
 
  void Utils::String2LowerCase(String& strString) { std::transform(strString.begin(), strString.end(), strString.begin(), ::tolower); }
-
-
- class TestClass
- {
- public:
-  TestClass(){}
-  TestClass(int a) : mA(a), mStr(""){}
-
-  int mA;
-  String mStr;
-
-  void SetA(int a) { mA = a; }
-  int GetA() const { return mA; }
-  static void TestStaticFunc(int a, String strMsg) { printf("passed %d, %s\n", a, strMsg.c_str());}
- };
 
  }  // namespace cppfd
