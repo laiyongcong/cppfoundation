@@ -50,9 +50,10 @@ struct FVarDecl
     std::string mType;
     bool mReference;
     bool mConst;
+    bool mStatic;
 
-    FVarDecl(std::string& InName, std::string& InType, bool bReferenced, bool bConst) :
-        mName(InName), mType(InType), mReference(bReferenced), mConst(bConst) {}
+    FVarDecl(std::string& InName, std::string& InType, bool bReferenced, bool bConst, bool bStatic) :
+        mName(InName), mType(InType), mReference(bReferenced), mConst(bConst), mStatic(bStatic) {}
 };
 
 
@@ -79,6 +80,7 @@ struct FClassInfo
     std::map<std::string, FClassInfo*> mChildren;
     std::map<std::string, FFuncMember> mFuncs;
     std::vector<FVarDecl> mMembers;
+    bool mWithConstructor;
     FClassInfo()
     {
         mName = "";
@@ -86,6 +88,7 @@ struct FClassInfo
         mChildren.clear();
         mFuncs.clear();
         mMembers.clear();
+        mWithConstructor = false;
     }
 };
 
@@ -95,6 +98,7 @@ std::vector<FClassInfo*> ClassesVec;
 std::set<std::string> Reflection_HeaderKey;
 std::vector<std::string> Reflection_Header;
 
+std::string Reflection_Def;
 
 
 typedef std::tuple<std::string, llvm::APSInt> name_val_line;
@@ -105,6 +109,54 @@ int EnumCompare(const enum_vals_pair& LHS, const enum_vals_pair& RHS) {
 }
 int EnumValCompare(const name_val_line& LHS, const name_val_line& RHS) {
     return std::get<1>(LHS) < std::get<1>(RHS);
+}
+
+int ExportClass2Lua(const FClassInfo& info, std::string& strContent)
+{
+    int ncount = 0;
+    char szBuff[512] = {0};
+    const std::string& strClass = info.mName;
+    if(info.mParent != NULL) 
+    {
+        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n\tlua_tinker::class_inh<%s,%s>(pStat);\r\n",
+            strClass.c_str(), strClass.c_str(), strClass.c_str(), info.mParent->mName.c_str());
+    } 
+    else
+    {
+        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n",strClass.c_str(), strClass.c_str());
+    }
+    strContent.append(szBuff);
+    ncount++;
+
+    if(info.mWithConstructor) 
+    {
+        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_con<%s>(pStat, &lua_tinker::constructor<%s>);\r\n",strClass.c_str(), strClass.c_str());
+        strContent.append(szBuff);
+        ncount++;
+    }
+    for(auto itf = info.mFuncs.begin(); itf != info.mFuncs.end(); itf++) 
+    {
+        const FFuncMember& func = itf->second;
+        if(func.mStatic) 
+        {
+            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_static_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+        } 
+        else 
+        {
+            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+        }
+        strContent.append(szBuff);
+        ncount++;
+    }
+
+    for(auto itm = info.mMembers.begin(); itm != info.mMembers.end(); itm++) 
+    {
+        const std::string& strMember = (*itm).mName;
+        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_mem<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), strMember.c_str(), strClass.c_str(), strMember.c_str());
+        strContent.append(szBuff);
+        ncount++;
+    }
+    return ncount;
 }
 
 int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
@@ -130,16 +182,16 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
         const FFuncMember& func = itf->second;
         if (func.mStatic)
         {
-            snprintf(szBuff, sizeof(szBuff), "\r\n\t.static_method(&%s::%s,\"%s\")",
+            snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefStaticField(&%s::%s,\"%s\")",
                 strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
         }
         else
         {
-            if (func.mFuncName == strClass) //���캯��
+            if (func.mFuncName == strClass)
             {
                 if (func.mParams.empty()) 
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.constructor()");
+                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstructor()");
                 }
                 else 
                 {
@@ -152,18 +204,18 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
                             strParamTypes.append(", ");
                         }
                     }
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.constructor<%s>()", strParamTypes.c_str());
+                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstructor<%s>()", strParamTypes.c_str());
                 }
             }
             else 
             {
                 if (func.mIsConst)
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.const_method(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 } 
                 else 
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.method(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 }
             }
             
@@ -175,9 +227,15 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
     for (auto itm = info.mMembers.begin(); itm != info.mMembers.end(); itm++)
     {
         std::string strMember = (*itm).mName;
-        snprintf(szBuff, sizeof(szBuff), "\r\n\t.field(&%s::%s,\"%s\")",
-            strClass.c_str(), strMember.c_str(), strMember.c_str());
-
+        if (itm->mStatic) {
+            snprintf(szBuff, sizeof(szBuff),
+                     "\r\n\t.RefStaticField(&%s::%s,\"%s\")", strClass.c_str(),
+                     strMember.c_str(), strMember.c_str());
+        } else {
+            snprintf(szBuff, sizeof(szBuff),
+                     "\r\n\t.RefField(&%s::%s,\"%s\")", strClass.c_str(),
+                     strMember.c_str(), strMember.c_str());
+        }
         strContent.append(szBuff);
         ncount++;
     }
@@ -205,7 +263,7 @@ void BuildClassInh(std::string strClassName, std::string strParent)
     it->second.mParent->mChildren[strClassName] = &(it->second);
 }
 
-void AddRefClass(std::string strClassName, CXXRecordDecl *Declaration )
+void AddRefClass(std::string strClassName, CXXRecordDecl *Declaration, bool withLuaConstructor )
 {
     if (strClassName[0] == '_')
     {
@@ -214,6 +272,10 @@ void AddRefClass(std::string strClassName, CXXRecordDecl *Declaration )
     auto it = ClassesInfo.find(strClassName);
     if (it != ClassesInfo.end())
     {
+        if(withLuaConstructor)
+        {
+          it->second.mWithConstructor = true;  
+        }
         return;
     }
     FClassInfo info;
@@ -233,7 +295,7 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
     auto it = ClassesInfo.find(strClassName);
     if (it == ClassesInfo.end())
     {
-        AddRefClass(strClassName, Declaration);
+        AddRefClass(strClassName, Declaration, false);
     }
     it = ClassesInfo.find(strClassName);
     if (it == ClassesInfo.end())
@@ -253,7 +315,7 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
         auto itfunc = pParent->mFuncs.find(strFunc);
         if (itfunc != pParent->mFuncs.end())
         {
-            if (itfunc->second.mVirtual) //�ҵ�ͬ���麯��
+            if (itfunc->second.mVirtual)
             {
                 bFound = true;
                 break;
@@ -289,18 +351,18 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
             bReference = true;
         }
 
-        funcMem.mParams.push_back(FVarDecl(name, type, bReference, bConst));
+        funcMem.mParams.push_back(FVarDecl(name, type, bReference, bConst, false));
     }
 
     info.mFuncs[strFunc] = funcMem;
 }
 
-void AddClassMember(std::string strClassName, CXXRecordDecl *Declaration, std::string strMember, std::string strType)
+void AddClassMember(std::string strClassName, CXXRecordDecl *Declaration, std::string strMember, std::string strType, bool bStatic)
 {
     auto it = ClassesInfo.find(strClassName);
     if (it == ClassesInfo.end())
     {
-        AddRefClass(strClassName, Declaration);
+        AddRefClass(strClassName, Declaration, false);
     }
     it = ClassesInfo.find(strClassName);
     if (it == ClassesInfo.end())
@@ -308,7 +370,7 @@ void AddClassMember(std::string strClassName, CXXRecordDecl *Declaration, std::s
         return;
     }
     FClassInfo& info = it->second;
-    info.mMembers.push_back(FVarDecl(strMember, strType, false, false));
+    info.mMembers.push_back(FVarDecl(strMember, strType, false, false, bStatic));
 }
 
 //std::vector<enum_vals_pair> EnumDefines;
@@ -341,10 +403,10 @@ public:
                 if (decl_type != TTK_Struct)
                     continue;
 
-                if (decl_name.startswith_lower("__refflag_") && decl_name != class_name)
+                if (decl_name.startswith("__refflag_") && decl_name != class_name)
                 {
                     bRefExportFlag = true;
-                    AddRefClass(class_name.str(), Declaration);
+                    AddRefClass(class_name.str(), Declaration, false);
                     bExport = true;
                 }
 
@@ -352,13 +414,13 @@ public:
                     continue;
 
                 //以下为老的使用宏进行反射的方式
-                if (decl_name.startswith_lower("__regist_") ||
-                        decl_name.startswith_lower("__export_") ||
-                        decl_name.startswith_lower("__field_") ||
-                        decl_name.startswith_lower("__arrfield_") ||
-                        decl_name.startswith_lower("__method_") ||
-                        decl_name.startswith_lower("__staticmethod_") ||
-                        decl_name.startswith_lower("__constructor_"))
+                /*if (decl_name.startswith("__regist_") ||
+                        decl_name.startswith("__export_") ||
+                        decl_name.startswith("__field_") ||
+                        decl_name.startswith("__arrfield_") ||
+                        decl_name.startswith("__method_") ||
+                        decl_name.startswith("__staticmethod_") ||
+                        decl_name.startswith("__constructor_"))
                 {
                     char szBuff[512] = { 0 };
 
@@ -372,7 +434,7 @@ public:
                     ReflectionString.append(szBuff);
                     bExport = true;
                     bOldExport = true;
-                }
+                }*/
             }
             else if (isa<CXXMethodDecl>(*decl_iter)) 
             {
@@ -406,7 +468,22 @@ public:
                 continue;
               bRefExportFlag = false;
 
-              AddClassMember(class_name.str(), Declaration, strMem.str(), strType);
+              AddClassMember(class_name.str(), Declaration, strMem.str(), strType, false);
+            }
+            else if (isa<VarDecl>(*decl_iter))
+            {
+                auto it = ClassesInfo.find(class_name.str());
+                if (it == ClassesInfo.end())
+                    continue;
+                VarDecl* decl = static_cast<VarDecl*>(*decl_iter);
+                StringRef strMem = decl->getName();
+                std::string strType = decl->getType().getAsString();
+
+                if (bRefExportFlag == false)
+                    continue;
+                bRefExportFlag = false;
+
+                AddClassMember(class_name.str(), Declaration, strMem.str(), strType, decl->isStaticDataMember());
             }
         }
         if (bExport)
@@ -609,7 +686,7 @@ bool CheckIsUpdateData(SmallString<256>& file_path)
 
 int main(int argc, char **argv) 
 {
-	std::vector<std::string> clang_args;
+    std::vector<std::string> clang_args;
     SmallString<256> szSource(argv[1]);
     SmallString<256> szDest(argv[2]);
     SmallString<256> szArgs(argv[3]);
@@ -617,7 +694,8 @@ int main(int argc, char **argv)
     std::vector<std::string> namespaceList;
     for (int i = 4; i < argc; i++)
     {
-      namespaceList.push_back(argv[i]);
+      std::string strArg = argv[i];
+      namespaceList.push_back(strArg);
     }
 
     if (CheckIsUpdateData(szSource))
@@ -653,7 +731,6 @@ int main(int argc, char **argv)
         clang_args.push_back(strParam);
     }
     std::string strClangHeaderArg = "-I./";
-    //strClangHeaderArg += szArgClangHeaderDir.c_str();
     clang_args.push_back(strClangHeaderArg);
 
     ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr = MemoryBuffer::getFileOrSTDIN(szSource);
@@ -667,10 +744,14 @@ int main(int argc, char **argv)
         return 2;
 
     Reflection_HeaderKey.clear();
-    //EnumDefines.clear();
 
     std::unique_ptr<FrontendAction> Action(new ReflectionStructCSVisitAction);
     clang::tooling::runToolOnCodeWithArgs(std::move(Action), Code->getBuffer(), clang_args);
+
+    if (Reflection_HeaderKey.find("RefelectionHelper.h") == Reflection_HeaderKey.end())
+    {
+        Reflection_Header.push_back("RefelectionHelper.h");
+    }
 
     std::string header;
     header.append("// C++ class header boilerplate exported from ReflectionTool\n// This is automatically generated by the tools.\n// DO NOT modify this manually!\n\n");
@@ -705,5 +786,5 @@ int main(int argc, char **argv)
 
     printf("Reflection code generated in %" PRId64 " seconds", tm_end - tm_now);
 
-	return 0;
+    return 0;
 }

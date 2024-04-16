@@ -28,16 +28,24 @@ source_group(Utils\ Files
 	${Utils_Files_Sources}
 )
 
+FILE(GLOB Fasterjson_Files_Sources "Fasterjson/*.*")
+source_group(Fasterjson\ Files
+	FILES
+	${Fasterjson_Files_Sources}
+)
+
 set(${PROJECT_NAME}_All_Sources
 	${Source_Files_Sources}
 	${Header_Files_Sources}
 	${Reflection_Files_Sources}
 	${Threading_Files_Sources}
 	${Utils_Files_Sources}
+	${Fasterjson_Files_Sources}
 )
 set(${PROJECT_NAME}_Local_Include_Dirs
 	./
 	Reflection
 	Threading
 	Utils
+	Fasterjson
 )

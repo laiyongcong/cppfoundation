@@ -37,7 +37,7 @@ class ReflectiveClass {
      F* pField = (F*)szTmpBuff;
      FieldInfo fInfo = GetFieldInfo(*pField);
 
-     unsigned long long uOffset = ((unsigned long long)&(((const T*)1024)->*fieldptr)) - 1024;
+     uint64_t uOffset = ((uint64_t) & (((const T*)1024)->*fieldptr)) - 1024;
      FieldRegister regist((uint64_t)uOffset, sizeof(F), typeid(F), fInfo.mElementType, mClass.get(), accType, Demangle(typeid(F).name()).c_str(), szName, fInfo.mElementCount);
      return *this;
    }

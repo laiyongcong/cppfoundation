@@ -9,20 +9,6 @@
 #  define REF_EXPORT struct CPPFD_JOIN(__refflag_, __LINE__) {};
 #endif
 
-#define NEWINSTANCE_PTR_CALLER(T)  \
-template <typename C, typename... Args> \
-static C* __new_instance_ptr__(void* ptr, Args... args) {  \
-  return new (ptr) T(args...);  \
-} \
-template <typename C, typename... Args> \
-static C* (*__create_new_instance_ptr__(C* (*)(Args...)))(void*, Args...) { \
-  return &__new_instance_ptr__<C, Args...>; \
-} \
-template <typename C> \
-static C* (*__create_new_instance_ptr__(C* (*)()))(void*) { \
-  return &__new_instance_ptr__<C>; \
-}
-
 namespace cppfd {
 
 class Class;
@@ -302,7 +288,7 @@ class MemberBase : public NonCopyable {
 
 class Field : public MemberBase {
   friend class Class;
-  friend class FieldRegister;
+  friend struct FieldRegister;
 
  private:
   const std::type_info& mType;
@@ -328,7 +314,7 @@ class Field : public MemberBase {
 
 class StaticField : public MemberBase {
    friend class Class;
-   friend class StaticFieldRegister;
+   friend struct StaticFieldRegister;
 
   private:
    const std::type_info& mType;
@@ -409,7 +395,7 @@ class MethodBase : public MemberBase {
 };
 
 class Method : public MethodBase {
-   friend class MethodRegister;
+   friend struct MethodRegister;
    friend class Class;
   public:
    FORCEINLINE bool IsVirtual() const { return mIsVirtual; }
@@ -434,7 +420,7 @@ class Method : public MethodBase {
 };
 
 class StaticMethod : public MethodBase {
-   friend class StaticMethodRegister;
+   friend struct StaticMethodRegister;
    friend class Class;
 
   public:
@@ -459,7 +445,7 @@ class StaticMethod : public MethodBase {
 
 class ConstructorMethod : public StaticMethod {
    friend class Class;
-   friend class ConstructorMethodRegistor;
+   friend struct ConstructorMethodRegistor;
 
   public:
    virtual String GetPrefix() const override;
@@ -554,11 +540,11 @@ typedef std::map<String, const StaticMethod*> StaticMethodMap;
 typedef std::vector<const ConstructorMethod*> ConstructorList;
 
 class Class {
-   friend class FieldRegister;
-   friend class StaticFieldRegister;
-   friend class MethodRegister;
-   friend class StaticMethodRegister;
-   friend class ConstructorMethodRegistor;
+   friend struct FieldRegister;
+   friend struct StaticFieldRegister;
+   friend struct MethodRegister;
+   friend struct StaticMethodRegister;
+   friend struct ConstructorMethodRegistor;
   public:
    typedef void* (*SuperCastFuncPtr)(void*);
    typedef const void* (*SuperCastConstFuncPtr)(const void*);
@@ -640,6 +626,7 @@ class Class {
         }
       }
     }
+    return nullptr;
    }
 
    template <typename R, typename... Args>
@@ -789,7 +776,7 @@ R Method::Invoke(C* object, Args... args) const {
      return constCb->invoke(object, args...);
    }
    if (TestCompatible<Args...>(typeid(R), typeid(C*), object)) {
-     CallableType* cb = (CallableType*)(mCallable.get());
+     cb = (CallableType*)(mCallable.get());
      return cb->invoke(object, args...);
    }
    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), typeid(C*)));
@@ -809,7 +796,7 @@ R Method::Invoke(C* object) const {
       return constCb->invoke(object);
     }
     if (TestCompatible(typeid(R), typeid(C*), object)) {
-    CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       return cb->invoke(object);
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), typeid(C*)));
@@ -829,7 +816,7 @@ void Method::Invoke(C* object, Args... args) const {
       constCb->invoke(object, args...);
     }
     if (TestCompatible<Args...>(typeid(void), typeid(C*), object)) {
-      CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       cb->invoke(object, args...);
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), typeid(C*)));
@@ -849,7 +836,7 @@ void Method::Invoke(C* object) const {
       constCb->invoke(object);
     }
     if (TestCompatible(typeid(void), typeid(C*), object)) {
-      CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       cb->invoke(object);
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), typeid(C*)));
@@ -864,7 +851,7 @@ R StaticMethod::Invoke(Args... args) const {
       return cb->invoke(args...);
     }
     if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr)) {
-      CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       return cb->invoke(args...);
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
@@ -879,7 +866,7 @@ R StaticMethod::Invoke() const {
       return cb->invoke();
     }
     if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr)) {
-      CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       return cb->invoke();
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), GetClass().GetTypeInfo()));
@@ -894,7 +881,7 @@ void StaticMethod::Invoke(Args... args) const {
       cb->invoke(args...);
     }
     if (TestCompatible<Args...>(typeid(void), GetClass().GetTypeInfo(), nullptr)) {
-      CallableType* cb = (CallableType*)(mCallable.get());
+      cb = (CallableType*)(mCallable.get());
       cb->invoke(args...);
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), GetClass().GetTypeInfo()));
@@ -930,26 +917,21 @@ R ConstructorMethod::InvokeAlloca(Args... args) {
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
 }
 
-class FieldRegister {
-  public:
+struct FieldRegister {
     FieldRegister(uint64_t offset, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* szType,
                   const char* szName, int nCount);
 };
-class StaticFieldRegister {
-   public:
+struct StaticFieldRegister {
     StaticFieldRegister(void* pAddr, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* szType,
                         const char* szName, int nCount);
 };
-class MethodRegister {
-   public:
+struct MethodRegister {
     MethodRegister(std::shared_ptr<BaseCallable> pCb, const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, bool bVirtual);
 };
-class StaticMethodRegister {
-   public:
+struct StaticMethodRegister {
     StaticMethodRegister(std::shared_ptr<BaseCallable> pCb, const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs);
 };
-class ConstructorMethodRegistor {
-   public:
+struct ConstructorMethodRegistor {
     ConstructorMethodRegistor(std::shared_ptr<BaseCallable> pCb, std::shared_ptr<BaseCallable> pPlacementCb, const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName,
                               const char* szArgs);
 };
