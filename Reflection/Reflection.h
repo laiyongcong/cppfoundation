@@ -378,10 +378,10 @@ class MethodBase : public MemberBase {
    String FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const;
 
    template <typename... Args>
-   bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr) const;
+   bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const;
 
    template <>
-   bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr) const;
+   bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const;
 
   protected:
    MethodBase(const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, std::shared_ptr<BaseCallable> cb);
@@ -566,7 +566,7 @@ class Class {
    static const Class* GetClassByName(const String& strName);
    static const Class* GetClassByType(const std::type_info& type);
    static std::pair<EnumClassType, const Class*> FindClassByType(const std::type_info& type);
-   static bool IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr = 0);
+   static bool IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr = 0, bool bVirtualFunc = false);
    static bool ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& argsList2);
 
    const Field* GetField(const char* szName, bool bSearchSuper = true) const;
@@ -736,8 +736,8 @@ String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::
 }
 
 template<typename... Args>
-bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr) const {
-   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr) || !Class::IsCastable(GetReturnType(), retType)) {
+bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const {
+   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr, bVirtualFunc) || !Class::IsCastable(GetReturnType(), retType)) {
     return false;
    }
    ArgumentTypeList argList;
@@ -754,8 +754,8 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
 }
 
 template <>
-bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr) const {
-   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr) || !Class::IsCastable(GetReturnType(), retType)) {
+bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const {
+   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr, bVirtualFunc) || !Class::IsCastable(GetReturnType(), retType)) {
     return false;
    }
    if (GetArgsCount() != 0) return false;
@@ -775,11 +775,11 @@ R Method::Invoke(C* object, Args... args) const {
    if (constCb) {
      return constCb->invoke(object, args...);
    }
-   if (TestCompatible<Args...>(typeid(R), typeid(C*), object)) {
+   if (TestCompatible<Args...>(typeid(R), typeid(C), object, mIsVirtual)) {
      cb = (CallableType*)(mCallable.get());
      return cb->invoke(object, args...);
    }
-   throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), typeid(C*)));
+   throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), typeid(C)));
 }
 
 template <typename R, typename C>
@@ -795,11 +795,11 @@ R Method::Invoke(C* object) const {
     if (constCb) {
       return constCb->invoke(object);
     }
-    if (TestCompatible(typeid(R), typeid(C*), object)) {
+    if (TestCompatible(typeid(R), typeid(C), object, mIsVirtual)) {
       cb = (CallableType*)(mCallable.get());
       return cb->invoke(object);
     }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), typeid(C*)));
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), typeid(C)));
 }
 
 template <typename C, typename... Args>
@@ -810,16 +810,19 @@ void Method::Invoke(C* object, Args... args) const {
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
       cb->invoke(object, args...);
+      return;
     }
     ConstCallableType* constCb = dynamic_cast<ConstCallableType*>(mCallable.get());
     if (constCb) {
       constCb->invoke(object, args...);
+      return;
     }
-    if (TestCompatible<Args...>(typeid(void), typeid(C*), object)) {
+    if (TestCompatible<Args...>(typeid(void), typeid(C), object, mIsVirtual)) {
       cb = (CallableType*)(mCallable.get());
       cb->invoke(object, args...);
+      return;
     }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), typeid(C*)));
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), typeid(C)));
 }
 
 template <typename C>
@@ -830,16 +833,19 @@ void Method::Invoke(C* object) const {
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
       cb->invoke(object);
+      return;
     }
     ConstCallableType* constCb = dynamic_cast<ConstCallableType*>(mCallable.get());
     if (constCb) {
       constCb->invoke(object);
+      return;
     }
-    if (TestCompatible(typeid(void), typeid(C*), object)) {
+    if (TestCompatible(typeid(void), typeid(C), object, mIsVirtual)) {
       cb = (CallableType*)(mCallable.get());
       cb->invoke(object);
+      return;
     }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), typeid(C*)));
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), typeid(C)));
 }
 
 template <typename R, typename... Args>
@@ -850,7 +856,7 @@ R StaticMethod::Invoke(Args... args) const {
     if (cb) {
       return cb->invoke(args...);
     }
-    if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr)) {
+    if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
       cb = (CallableType*)(mCallable.get());
       return cb->invoke(args...);
     }
@@ -865,7 +871,7 @@ R StaticMethod::Invoke() const {
     if (cb) {
       return cb->invoke();
     }
-    if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr)) {
+    if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
       cb = (CallableType*)(mCallable.get());
       return cb->invoke();
     }
@@ -879,10 +885,12 @@ void StaticMethod::Invoke(Args... args) const {
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
       cb->invoke(args...);
+      return;
     }
-    if (TestCompatible<Args...>(typeid(void), GetClass().GetTypeInfo(), nullptr)) {
+    if (TestCompatible<Args...>(typeid(void), GetClass().GetTypeInfo(), nullptr, false)) {
       cb = (CallableType*)(mCallable.get());
       cb->invoke(args...);
+      return;
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), GetClass().GetTypeInfo()));
 }
@@ -894,10 +902,12 @@ void StaticMethod::Invoke() const {
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
       cb->invoke();
+      return;
     }
-    if (TestCompatible(typeid(void), GetClass().GetTypeInfo(), nullptr)) {
+    if (TestCompatible(typeid(void), GetClass().GetTypeInfo(), nullptr, false)) {
       cb = (CallableType*)(mCallable.get());
       cb->invoke();
+      return;
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), GetClass().GetTypeInfo()));
 }
@@ -910,7 +920,7 @@ R ConstructorMethod::InvokeAlloca(Args... args) {
     if (cb) {
       return cb->invoke(args...);
     }
-    if (TestCompatible()<Args...>(mPlacementCallable, GetClass().GetTypeInfo(), typeid(R), GetClass().GetTypeInfo(), 0)) {
+    if (TestCompatible<Args...>(mPlacementCallable, GetClass().GetTypeInfo(), typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
       cb = (CallableType*)mPlacementCallable;
       return cb->invoke(args...);
     }

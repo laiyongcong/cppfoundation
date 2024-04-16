@@ -130,7 +130,7 @@ std::pair<Class::EnumClassType, const Class*> Class::FindClassByType(const std::
    return std::make_pair(ClassTypeNum, (const Class*)nullptr);
 }
 
-bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr /*= 0*/) {
+bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr /*= 0*/, bool bVirtualFunc /*= false*/) {
    if (from_cls == to_cls) return true;
 
    if (from_cls == typeid(void*)) {
@@ -140,7 +140,7 @@ bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_
    auto toClass = Class::FindClassByType(to_cls);
 
    if (fromClass.first != Class::ClassTypeNum && fromClass.first == toClass.first) {
-     if (toClass.second->IsSameOrSuperOf(*fromClass.second))
+     if (toClass.second->IsSameOrSuperOf(*fromClass.second) || bVirtualFunc && fromClass.second->IsSameOrSuperOf(*toClass.second))
        return true;
      else if ((fromClass.first == Class::ClassPointerType || fromClass.first == Class::ClassConstPointerType) && objptr != nullptr) {
        void** objptrptr = static_cast<void**>(objptr);
@@ -156,7 +156,7 @@ bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_
        if (toClass.second->IsSameOrSuperOf(*fromClass.second))
          return true;
        else if (objptr != nullptr) {
-         void** objptrptr = static_cast<void**>(objptr);
+         const void** objptrptr = static_cast<const void**>(objptr);
          return toClass.second->DynamicCastableFromSuper(*objptrptr, fromClass.second);
        }
      }

@@ -12,7 +12,7 @@ static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestCla
 	.RefMethod(&TestClass::SetStringVal,"SetStringVal")
 	.RefStaticMethod(&TestClass::StaticOutput,"StaticOutput")
 	.RefConstructor()
-	.RefConstMethod(&TestClass::VirtualFunc,"VirtualFunc")
+	.RefConstMethod(&TestClass::VirtualFunc,"VirtualFunc", true)
 	.RefField(&TestClass::mIntVal,"mIntVal")
 	.RefField(&TestClass::mStrVal,"mStrVal")
 	.RefStaticField(&TestClass::mStaticIntVal,"mStaticIntVal");

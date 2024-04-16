@@ -182,7 +182,7 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
         const FFuncMember& func = itf->second;
         if (func.mStatic)
         {
-            snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefStaticField(&%s::%s,\"%s\")",
+            snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefStaticMethod(&%s::%s,\"%s\")",
                 strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
         }
         else
@@ -211,11 +211,17 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
             {
                 if (func.mIsConst)
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    if (func.mVirtual)
+                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    else
+                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 } 
                 else 
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    if (func.mVirtual)
+                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                    else
+                      snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 }
             }
             
