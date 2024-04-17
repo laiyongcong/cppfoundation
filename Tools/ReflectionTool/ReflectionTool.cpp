@@ -78,7 +78,8 @@ struct FClassInfo
     std::string mName;
     FClassInfo* mParent;
     std::map<std::string, FClassInfo*> mChildren;
-    std::map<std::string, FFuncMember> mFuncs;
+    std::map<std::string, FFuncMember> mFuncMap;
+    std::vector<FFuncMember> mFuncs;
     std::vector<FVarDecl> mMembers;
     bool mWithConstructor;
     FClassInfo()
@@ -88,6 +89,7 @@ struct FClassInfo
         mChildren.clear();
         mFuncs.clear();
         mMembers.clear();
+        mFuncMap.clear();
         mWithConstructor = false;
     }
 };
@@ -111,53 +113,53 @@ int EnumValCompare(const name_val_line& LHS, const name_val_line& RHS) {
     return std::get<1>(LHS) < std::get<1>(RHS);
 }
 
-int ExportClass2Lua(const FClassInfo& info, std::string& strContent)
-{
-    int ncount = 0;
-    char szBuff[512] = {0};
-    const std::string& strClass = info.mName;
-    if(info.mParent != NULL) 
-    {
-        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n\tlua_tinker::class_inh<%s,%s>(pStat);\r\n",
-            strClass.c_str(), strClass.c_str(), strClass.c_str(), info.mParent->mName.c_str());
-    } 
-    else
-    {
-        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n",strClass.c_str(), strClass.c_str());
-    }
-    strContent.append(szBuff);
-    ncount++;
-
-    if(info.mWithConstructor) 
-    {
-        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_con<%s>(pStat, &lua_tinker::constructor<%s>);\r\n",strClass.c_str(), strClass.c_str());
-        strContent.append(szBuff);
-        ncount++;
-    }
-    for(auto itf = info.mFuncs.begin(); itf != info.mFuncs.end(); itf++) 
-    {
-        const FFuncMember& func = itf->second;
-        if(func.mStatic) 
-        {
-            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_static_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
-        } 
-        else 
-        {
-            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
-        }
-        strContent.append(szBuff);
-        ncount++;
-    }
-
-    for(auto itm = info.mMembers.begin(); itm != info.mMembers.end(); itm++) 
-    {
-        const std::string& strMember = (*itm).mName;
-        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_mem<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), strMember.c_str(), strClass.c_str(), strMember.c_str());
-        strContent.append(szBuff);
-        ncount++;
-    }
-    return ncount;
-}
+//int ExportClass2Lua(const FClassInfo& info, std::string& strContent)
+//{
+//    int ncount = 0;
+//    char szBuff[512] = {0};
+//    const std::string& strClass = info.mName;
+//    if(info.mParent != NULL) 
+//    {
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n\tlua_tinker::class_inh<%s,%s>(pStat);\r\n",
+//            strClass.c_str(), strClass.c_str(), strClass.c_str(), info.mParent->mName.c_str());
+//    } 
+//    else
+//    {
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n",strClass.c_str(), strClass.c_str());
+//    }
+//    strContent.append(szBuff);
+//    ncount++;
+//
+//    if(info.mWithConstructor) 
+//    {
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_con<%s>(pStat, &lua_tinker::constructor<%s>);\r\n",strClass.c_str(), strClass.c_str());
+//        strContent.append(szBuff);
+//        ncount++;
+//    }
+//    for(auto itf = info.mFuncs.begin(); itf != info.mFuncs.end(); itf++) 
+//    {
+//        const FFuncMember& func = itf->second;
+//        if(func.mStatic) 
+//        {
+//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_static_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+//        } 
+//        else 
+//        {
+//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+//        }
+//        strContent.append(szBuff);
+//        ncount++;
+//    }
+//
+//    for(auto itm = info.mMembers.begin(); itm != info.mMembers.end(); itm++) 
+//    {
+//        const std::string& strMember = (*itm).mName;
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_mem<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), strMember.c_str(), strClass.c_str(), strMember.c_str());
+//        strContent.append(szBuff);
+//        ncount++;
+//    }
+//    return ncount;
+//}
 
 int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
 {
@@ -179,7 +181,7 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
 
     for (auto itf = info.mFuncs.begin(); itf != info.mFuncs.end(); itf++)
     {
-        const FFuncMember& func = itf->second;
+        const FFuncMember& func = *itf;
         if (func.mStatic)
         {
             snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefStaticMethod(&%s::%s,\"%s\")",
@@ -284,6 +286,7 @@ void AddRefClass(std::string strClassName, CXXRecordDecl *Declaration, bool with
         }
         return;
     }
+    
     FClassInfo info;
     info.mName = strClassName;
     ClassesInfo[info.mName] = info;
@@ -309,7 +312,8 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
         return;
     }
     FClassInfo& info = it->second;
-    if (info.mFuncs.find(strFunc) != info.mFuncs.end())
+    if (strFunc != strClassName &&
+        info.mFuncMap.find(strFunc) != info.mFuncMap.end())
     {
         return;
     }
@@ -318,8 +322,8 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
     FClassInfo* pParent = info.mParent;
     while (pParent)
     {
-        auto itfunc = pParent->mFuncs.find(strFunc);
-        if (itfunc != pParent->mFuncs.end())
+        auto itfunc = pParent->mFuncMap.find(strFunc);
+        if (itfunc != pParent->mFuncMap.end())
         {
             if (itfunc->second.mVirtual)
             {
@@ -360,7 +364,8 @@ void AddClassFunc(std::string strClassName, CXXRecordDecl *Declaration, std::str
         funcMem.mParams.push_back(FVarDecl(name, type, bReference, bConst, false));
     }
 
-    info.mFuncs[strFunc] = funcMem;
+    info.mFuncMap[strFunc] = funcMem;
+    info.mFuncs.push_back(funcMem);
 }
 
 void AddClassMember(std::string strClassName, CXXRecordDecl *Declaration, std::string strMember, std::string strType, bool bStatic)
@@ -395,7 +400,7 @@ public:
 
         static bool bRefExportFlag = false;
         bool bExport = false;
-        bool bOldExport = false;
+        //bool bOldExport = false;
         StringRef class_name = Declaration->getName();
         for (auto decl_iter = Declaration->decls_begin(); decl_iter != Declaration->decls_end(); decl_iter++) 
         {
