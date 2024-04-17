@@ -326,8 +326,6 @@ class Field : public MemberBase {
    template <typename Object, typename Value>
    void SetByIdx(Object* object, const Value& value, int idx = 0) const;
 
-   public:
-
   private:
    Field(uint64_t offset, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* strType, const char* strName,
          int nElementCount);
