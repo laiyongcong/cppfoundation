@@ -52,7 +52,7 @@ else() #linux下似乎不能用prebuild
 	execute_process(COMMAND ${CMAKE_SOURCE_DIR}/Bin/ReflectionTool
 		"${CMAKE_CURRENT_SOURCE_DIR}/Generated/${PROJECT_NAME}.reflection"
 		"${CMAKE_CURRENT_SOURCE_DIR}/Generated/Reflection.generated.cpp" 
-		"${CMAKE_CURRENT_SOURCE_DIR}/Generated/${PROJECT_NAME}.response"
+		"${CMAKE_CURRENT_SOURCE_DIR}/Generated/${PROJECT_NAME}.dirs"
 		"cppfd"
 		)
 endif()
