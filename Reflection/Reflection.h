@@ -129,6 +129,7 @@ struct Callable : public BaseCallable {
       strRes += ",";
       strRes += Demangle((*it)->name());
     }
+    strRes += ")";
     return strRes;
   }
 };
@@ -451,15 +452,35 @@ class ConstructorMethod : public StaticMethod {
    virtual String GetPrefix() const override;
 
    template <typename R, typename... Args>
-   R Alloca(void* ptr, Args... args) {
+   R Alloca(void* ptr, Args... args) const {
     if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    return this->InvokeAlloca(ptr, args...);
+    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    typedef StaticCallable<R, void*, Args...> CallableType;
+    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
+    if (cb) {
+      return cb->invoke(ptr, args...);
+    }
+    if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
+      cb = (CallableType*)(mPlacementCallable.get());
+      return cb->invoke(ptr, args...);
+    }
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
    }
 
    template <typename R>
-   R Alloca(void* ptr) {
+   R Alloca(void* ptr) const {
     if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    return this->InvokeAlloca<R, void*>(ptr);
+    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    typedef StaticCallable<R, void*> CallableType;
+    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
+    if (cb) {
+      return cb->invoke(ptr);
+    }
+    if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
+      cb = (CallableType*)(mPlacementCallable.get());
+      return cb->invoke(ptr);
+    }
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), GetClass().GetTypeInfo()));
    }
    
   private:
@@ -468,9 +489,6 @@ class ConstructorMethod : public StaticMethod {
   private:
    ConstructorMethod(const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, std::shared_ptr<BaseCallable> cb, std::shared_ptr<BaseCallable> placementCb)
        : StaticMethod(pClass, accessType, szType, szName, szArgs, cb), mPlacementCallable(placementCb) {}
-
-   template <typename R, typename... Args>
-   R InvokeAlloca(Args... args);
 };
 
 
@@ -587,8 +605,8 @@ class Class {
    FORCEINLINE const Class* Super() const { return mSuper; }
    FORCEINLINE const std::type_info& GetTypeInfo() const { return mType; }
    FORCEINLINE const std::type_info& GetPtrTypeInfo() const { return mPtrType; }
-   FORCEINLINE void* DynamicCastFromSuper(void* p) const { return mSuperCastFunc(p); }
-   FORCEINLINE const void* DynamicCastFromSuperConst(const void* p) const { return mSuperCastConstFunc(p); }
+   FORCEINLINE void* DynamicCastFromSuper(void* p) const { return mSuperCastFunc? (*mSuperCastFunc)(p) : nullptr; }
+   FORCEINLINE const void* DynamicCastFromSuperConst(const void* p) const { return mSuperCastConstFunc ? (*mSuperCastConstFunc)(p) : nullptr; }
    bool DynamicCastableFromSuper(void* pSuper, const Class* pSuperClass) const;
    bool DynamicCastableFromSuper(const void* pSuper, const Class* pSuperClass) const;
    bool IsSuperOf(const Class& cl) const;
@@ -605,7 +623,7 @@ class Class {
     {
       const ConstructorMethod& method = **it;
       if (ArgsSame(argsList, method.GetArgsTypeList())) {
-        NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable);
+        NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
         if (newCb && method.GetAccessType() == AccessPublic) {
           return newCb->invoke(args...);
         }
@@ -620,7 +638,7 @@ class Class {
     for (auto it = mConstructors.begin(); it != mConstructors.end(); it++) {
       const ConstructorMethod& method = **it;
       if (method.GetArgsCount() == 0) {
-        NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable);
+        NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
         if (newCb && method.GetAccessType() == AccessPublic) {
           return newCb->invoke();
         }
@@ -637,7 +655,7 @@ class Class {
     for (auto it = mConstructors.begin(); it != mConstructors.end(); it++) {
       const ConstructorMethod& method = **it;
       if (method.mPlacementCallable.get() && ArgsSame(argsList, method.GetArgsTypeList())) {
-        NewInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable);
+        AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
         if (allocaCb && method.GetAccessType() == AccessPublic) {
           return method.Alloca<R*>(ptr, args...);
         }
@@ -651,8 +669,8 @@ class Class {
     typedef const StaticCallable<R*, void*> AllocaInstanceCallable;
     for (auto it = mConstructors.begin(); it != mConstructors.end(); it++) {
       const ConstructorMethod& method = **it;
-      if (method.mPlacementCallable.get() && method.mPlacementCallable->GetArgsCount() == 0) {
-        NewInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable);
+      if (method.mPlacementCallable.get() && method.mPlacementCallable->GetArgsCount() == 1) {
+        AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
         if (allocaCb && method.GetAccessType() == AccessPublic) {
           return method.Alloca<R*>(ptr);
         }
@@ -706,7 +724,8 @@ String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::
    ArgumentTypeList argList;
    ArgsHelper<Args...>::ListArgs(argList);
    int idx = 1;
-   for (auto itPassed = argList.begin(), auto itExp = GetArgsTypeList().begin(); itPassed != argList.end();) {
+   ArgumentTypeList::const_iterator itExp = GetArgsTypeList().begin();
+   for (ArgumentTypeList::const_iterator itPassed = argList.begin(); itPassed != argList.end();) {
     if (**itPassed != **itExp) {
     info << "(WARN only: type castable)";
     info << "parameter " << idx << " mismatched, expected:" << Demangle((*itExp)->name()) << " passed:" << Demangle((*itPassed)->name()) << "\n";
@@ -745,7 +764,8 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
    if (GetArgsCount() != (int32_t)argList.size()) {
     return false;
    }
-   for (auto itPassed = argList.begin(), auto itExp = GetArgsTypeList().begin(); itPassed != argList.end();) {
+   ArgumentTypeList::const_iterator itExp = GetArgsTypeList().begin();
+   for (ArgumentTypeList::const_iterator itPassed = argList.begin(); itPassed != argList.end();) {
     if (!Class::IsCastable(**itExp, **itPassed)) return false;
     itPassed++;
     itExp++;
@@ -910,21 +930,6 @@ void StaticMethod::Invoke() const {
       return;
     }
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), GetClass().GetTypeInfo()));
-}
-
-template <typename R, typename... Args>
-R ConstructorMethod::InvokeAlloca(Args... args) {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
-    typedef StaticCallable<R, Args...> CallableType;
-    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable);
-    if (cb) {
-      return cb->invoke(args...);
-    }
-    if (TestCompatible<Args...>(mPlacementCallable, GetClass().GetTypeInfo(), typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
-      cb = (CallableType*)mPlacementCallable;
-      return cb->invoke(args...);
-    }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
 }
 
 struct FieldRegister {

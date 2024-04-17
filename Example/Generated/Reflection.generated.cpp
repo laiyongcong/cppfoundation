@@ -7,11 +7,12 @@
 
 using namespace cppfd;
 static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestClass>("TestClass")
+	.RefConstructor()
+	.RefConstructor<int, const std::string &>()
 	.RefConstMethod(&TestClass::Output,"Output")
+	.RefStaticMethod(&TestClass::StaticOutput,"StaticOutput")
 	.RefMethod(&TestClass::SetIntVal,"SetIntVal")
 	.RefMethod(&TestClass::SetStringVal,"SetStringVal")
-	.RefStaticMethod(&TestClass::StaticOutput,"StaticOutput")
-	.RefConstructor()
 	.RefConstMethod(&TestClass::VirtualFunc,"VirtualFunc", true)
 	.RefField(&TestClass::mIntVal,"mIntVal")
 	.RefField(&TestClass::mStrVal,"mStrVal")

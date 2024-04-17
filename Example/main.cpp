@@ -17,4 +17,17 @@ void main(int argc, char** argv) {
     pVirtualMethod->Invoke(&subobj);
     pVirtualMethod->Invoke(&obj);
   }
+
+  TestSubClass* pConstructorTest = pTestSubClass->NewInstance<TestSubClass>();
+  TestClass* pCon2 = pTestClass->NewInstance<TestClass, int, const std::string&>(1, "aaa");
+
+  char szTmpBuff[2048] = {0};
+  TestClass* pAllocaTest = pTestClass->Alloca<TestClass, int, const std::string&>(szTmpBuff, 2, "bbb");
+  pAllocaTest = pTestClass->Alloca<TestClass>(szTmpBuff);
+
+  if (Class::IsCastable(typeid(TestClass*), typeid(TestSubClass*), &subobj))
+  {
+    std::cout << "err cast" << std::endl;
+  }
+
 }

@@ -130,12 +130,27 @@ std::pair<Class::EnumClassType, const Class*> Class::FindClassByType(const std::
    return std::make_pair(ClassTypeNum, (const Class*)nullptr);
 }
 
+template<typename T>
+bool ConstCastableTest(const std::type_info& from_cls, const std::type_info& to_cls) {
+   return from_cls == typeid(T) && (to_cls == typeid(const T) || to_cls == typeid(const T&));
+}
+
 bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr /*= 0*/, bool bVirtualFunc /*= false*/) {
    if (from_cls == to_cls) return true;
 
-   if (from_cls == typeid(void*)) {
-     return to_cls == typeid(const void*);
+   if (ConstCastableTest<void*>(from_cls, to_cls) 
+       || ConstCastableTest<int8_t>(from_cls, to_cls) 
+       || ConstCastableTest<uint8_t>(from_cls, to_cls) 
+       || ConstCastableTest<int16_t>(from_cls, to_cls)
+       || ConstCastableTest<uint16_t>(from_cls, to_cls) 
+       || ConstCastableTest<int32_t>(from_cls, to_cls) 
+       || ConstCastableTest<uint32_t>(from_cls, to_cls) 
+       || ConstCastableTest<int64_t>(from_cls, to_cls) 
+       || ConstCastableTest<uint64_t>(from_cls, to_cls)
+       || ConstCastableTest<String>(from_cls, to_cls)) {
+     return true;
    }
+
    auto fromClass = Class::FindClassByType(from_cls);
    auto toClass = Class::FindClassByType(to_cls);
 
