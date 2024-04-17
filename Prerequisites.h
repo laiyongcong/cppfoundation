@@ -19,6 +19,7 @@
 #include <deque>
 #include <queue>
 #include <bitset>
+#include <memory>
 #include <inttypes.h>
 
 // STL algorithms & functions

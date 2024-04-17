@@ -12,6 +12,8 @@
 #  pragma warning(default : 4091)
 #else
 #  include <execinfo.h>
+#  include <fcntl.h>
+#  include <unistd.h>
 #endif
 
 namespace cppfd {

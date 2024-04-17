@@ -406,13 +406,11 @@ class MethodBase : public MemberBase {
    template <typename... Args>
    String FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const;
 
-   template <>
    String FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const;
 
    template <typename... Args>
    bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const;
 
-   template <>
    bool TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const;
 
   protected:
@@ -465,9 +463,6 @@ class StaticMethod : public MethodBase {
    template <typename... Args>
    void Invoke(Args... args) const;
 
-   template <>
-   void Invoke() const;
-
    virtual String GetPrefix() const override { return "static " + MethodBase::GetPrefix(); }
 
   protected:
@@ -483,36 +478,10 @@ class ConstructorMethod : public StaticMethod {
    virtual String GetPrefix() const override;
 
    template <typename R, typename... Args>
-   R Alloca(void* ptr, Args... args) const {
-    if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
-    typedef StaticCallable<R, void*, Args...> CallableType;
-    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
-    if (cb) {
-      return cb->invoke(ptr, args...);
-    }
-    if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
-      cb = (CallableType*)(mPlacementCallable.get());
-      return cb->invoke(ptr, args...);
-    }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
-   }
+   R Alloca(void* ptr, Args... args) const;
 
    template <typename R>
-   R Alloca(void* ptr) const {
-    if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
-    typedef StaticCallable<R, void*> CallableType;
-    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
-    if (cb) {
-      return cb->invoke(ptr);
-    }
-    if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
-      cb = (CallableType*)(mPlacementCallable.get());
-      return cb->invoke(ptr);
-    }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), GetClass().GetTypeInfo()));
-   }
+   R Alloca(void* ptr) const;
    
   private:
    std::shared_ptr<BaseCallable> mPlacementCallable;
@@ -811,23 +780,6 @@ String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::
    return String(info.str());
 }
 
-template <>
-String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const {
-   oStringStream info;
-   if (GetClass().GetTypeInfo() != classType) {
-    if (Class::IsCastable(GetClass().GetTypeInfo(), classType)) info << "(WARN only: type castable)";
-    info << "object type mismatched, expected:" << Demangle(GetClass().GetTypeInfo().name()) << " passed:" << Demangle(classType.name());
-   }
-   if (GetArgsCount() != 0) {
-    info << "mismatched number of parameter, expected:" << GetArgsCount() << " passed:0";
-   }
-   if (retType != GetReturnType()) {
-    if (Class::IsCastable(GetReturnType(), retType)) info << "(WARN only: type castable)";
-    info << "return type mismatched, expected:" << Demangle(GetReturnType().name()) << " passed:" << Demangle(retType.name());
-   }
-   return String(info.str());
-}
-
 template<typename... Args>
 bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const {
    if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr, bVirtualFunc) || !Class::IsCastable(GetReturnType(), retType)) {
@@ -844,15 +796,6 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
     itPassed++;
     itExp++;
    }
-   return true;
-}
-
-template <>
-bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const {
-   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr, bVirtualFunc) || !Class::IsCastable(GetReturnType(), retType)) {
-    return false;
-   }
-   if (GetArgsCount() != 0) return false;
    return true;
 }
 
@@ -989,21 +932,36 @@ void StaticMethod::Invoke(Args... args) const {
     throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(void), GetClass().GetTypeInfo()));
 }
 
-template <>
-void StaticMethod::Invoke() const {
+template <typename R, typename... Args>
+R ConstructorMethod::Alloca(void* ptr, Args... args) const {
+    if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
     if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
-    typedef const StaticCallable<void> CallableType;
-    CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
+    typedef StaticCallable<R, void*, Args...> CallableType;
+    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
     if (cb) {
-      cb->invoke();
-      return;
+      return cb->invoke(ptr, args...);
     }
-    if (TestCompatible(typeid(void), GetClass().GetTypeInfo(), nullptr, false)) {
-      cb = (CallableType*)(mCallable.get());
-      cb->invoke();
-      return;
+    if (TestCompatible<Args...>(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
+      cb = (CallableType*)(mPlacementCallable.get());
+      return cb->invoke(ptr, args...);
     }
-    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), GetClass().GetTypeInfo()));
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo<Args...>(typeid(R), GetClass().GetTypeInfo()));
+}
+
+template <typename R>
+R ConstructorMethod::Alloca(void* ptr) const {
+    if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
+    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    typedef StaticCallable<R, void*> CallableType;
+    CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
+    if (cb) {
+      return cb->invoke(ptr);
+    }
+    if (TestCompatible(typeid(R), GetClass().GetTypeInfo(), nullptr, false)) {
+      cb = (CallableType*)(mPlacementCallable.get());
+      return cb->invoke(ptr);
+    }
+    throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(R), GetClass().GetTypeInfo()));
 }
 
 struct FieldRegister {

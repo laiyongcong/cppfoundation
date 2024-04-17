@@ -26,6 +26,30 @@ namespace cppfd{
 
 String MethodBase::GetPrefix() const { return Demangle(GetReturnType().name()) + GetClass().GetFullName() + "::" + GetName(); }
 
+String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const {
+   oStringStream info;
+   if (GetClass().GetTypeInfo() != classType) {
+     if (Class::IsCastable(GetClass().GetTypeInfo(), classType)) info << "(WARN only: type castable)";
+     info << "object type mismatched, expected:" << Demangle(GetClass().GetTypeInfo().name()) << " passed:" << Demangle(classType.name());
+   }
+   if (GetArgsCount() != 0) {
+     info << "mismatched number of parameter, expected:" << GetArgsCount() << " passed:0";
+   }
+   if (retType != GetReturnType()) {
+     if (Class::IsCastable(GetReturnType(), retType)) info << "(WARN only: type castable)";
+     info << "return type mismatched, expected:" << Demangle(GetReturnType().name()) << " passed:" << Demangle(retType.name());
+   }
+   return String(info.str());
+}
+
+bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_info& classType, void* objPtr, bool bVirtualFunc) const {
+   if (!Class::IsCastable(GetClass().GetTypeInfo(), classType, objPtr, bVirtualFunc) || !Class::IsCastable(GetReturnType(), retType)) {
+     return false;
+   }
+   if (GetArgsCount() != 0) return false;
+   return true;
+}
+
  MethodBase::MethodBase(const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, std::shared_ptr<BaseCallable> cb)
      : MemberBase(pClass, accessType, szType, szName), mArgs(szArgs) {
    mCallable = cb;
