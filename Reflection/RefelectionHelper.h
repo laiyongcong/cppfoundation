@@ -81,14 +81,6 @@ class ReflectiveClass {
      return *this;
    }
 
-   /*template <>
-   ReflectiveClass& RefConstructor() {
-     auto pConstructorCallable = CreateStaticCallable<T*>(&NewInstance<T>);
-     auto pAllocaCallable = CreateStaticCallable<T*>(CreateAllocaFuncPtr<T>(&NewInstance<T>));
-     ConstructorMethodRegistor reigst(pConstructorCallable, pAllocaCallable, mClass.get(), AccessPublic, mClass->GetName().c_str(), mClass->GetName().c_str(), pConstructorCallable->GetArgsString().c_str());
-     return *this;
-   }*/
-
   private:
    template <typename C, typename... Args>
    static C* Allocate(void* ptr, Args... args) { return new (ptr) C(args...); }
@@ -97,11 +89,6 @@ class ReflectiveClass {
    static C* (*CreateAllocaFuncPtr(C* (*)(Args...)))(void*, Args...) {
      return &Allocate<C, Args...>;
    }
-
-   /*template <typename C>
-   static C* (*CreateAllocaFuncPtr(C* (*)()))(void*) {
-     return &Allocate<C>;
-   }*/
 
    static void* NullSuperCast(void* p) { return nullptr; }
 
