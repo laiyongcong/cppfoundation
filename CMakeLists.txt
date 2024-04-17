@@ -30,7 +30,7 @@ if(UNIX)
 	set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -fPIC")
 endif()
 
-add_subdirectory(Example)
+#add_subdirectory(Example)
 
 add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_All_Sources})
 include_directories(${${PROJECT_NAME}_Local_Include_Dirs})
