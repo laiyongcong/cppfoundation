@@ -19,15 +19,56 @@ void main(int argc, char** argv) {
   }
 
   TestSubClass* pConstructorTest = pTestSubClass->NewInstance<TestSubClass>();
+  if (pConstructorTest)
+  {
+    delete pConstructorTest;
+    pConstructorTest = nullptr;
+    std::cout << "new instance test ok" << std::endl;
+  }
+  
   TestClass* pCon2 = pTestClass->NewInstance<TestClass, int, const std::string&>(1, "aaa");
+  if (pCon2)
+  {
+    std::cout << "new instance with params test ok" << std::endl;
+    delete pCon2;
+    pCon2 = nullptr;
+  }
+  
 
   char szTmpBuff[2048] = {0};
   TestClass* pAllocaTest = pTestClass->Alloca<TestClass, int, const std::string&>(szTmpBuff, 2, "bbb");
-  pAllocaTest = pTestClass->Alloca<TestClass>(szTmpBuff);
-
-  if (Class::IsCastable(typeid(TestClass*), typeid(TestSubClass*), &subobj))
+  if (pAllocaTest)
   {
-    std::cout << "err cast" << std::endl;
+    std::cout << "allocate with params test ok" << std::endl;
   }
+  pAllocaTest = pTestClass->Alloca<TestClass>(szTmpBuff);
+  if (pAllocaTest)
+  {
+    std::cout << "allocate test ok" << std::endl;
+  }
+
+  auto pField = pTestSubClass->GetField("mIntVal");
+  if (pField)
+  {
+    int nVal;
+    pField->Set(&subobj, 5);
+    pField->Get(nVal, &subobj);
+    std::cout << "Get field val:" << nVal << " result:" << (nVal == 5) << std::endl;
+  }
+
+  pField = pTestSubClass->GetField("mArray");
+  if (pField)
+  {
+    std::cout << "test array field:";
+      for (int i = 0; i < pField->GetElementCount(); i++)
+      {
+        pField->SetByIdx(&subobj, i, i);
+        int nval;
+        pField->GetByIdx(nval, &subobj, i);
+        std::cout << nval << " ";
+      }
+      std::cout << std::endl;
+  }
+
 
 }

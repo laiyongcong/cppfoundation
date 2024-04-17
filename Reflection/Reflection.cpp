@@ -16,13 +16,13 @@ namespace cppfd{
 
  Field::Field(uint64_t offset, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* strType,
               const char* strName, int nElementCount)
-     : MemberBase(pClass, accessType, strType, strName), mType(type), mElementType(mElementType), mOffset(offset), mSize(size), mElementCount(nElementCount) {
+     : MemberBase(pClass, accessType, strType, strName), mType(type), mElementType(elementType), mOffset(offset), mSize(size), mElementCount(nElementCount) {
    mFieldIdx = pClass->GenFieldIdx();
  }
 
  StaticField::StaticField(void* pAddr, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* strType,
                           const char* strName, int nElementCount/* = 1*/)
-     : MemberBase(pClass, accessType, strType, strName), mType(type), mElementType(mElementType), mAddr(pAddr), mSize(size), mElementCount(nElementCount) { }
+     : MemberBase(pClass, accessType, strType, strName), mType(type), mElementType(elementType), mAddr(pAddr), mSize(size), mElementCount(nElementCount) {}
 
 String MethodBase::GetPrefix() const { return Demangle(GetReturnType().name()) + GetClass().GetFullName() + "::" + GetName(); }
 

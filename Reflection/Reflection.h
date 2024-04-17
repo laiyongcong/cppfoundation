@@ -308,6 +308,26 @@ class Field : public MemberBase {
    FORCEINLINE int GetFieldIdx() const { return mFieldIdx; }
    FORCEINLINE uint64_t GetOffset() const { return mOffset; }
 
+   template <typename Object, typename Value>
+   void Get(Value& result, Object* object) const;
+
+   template <typename Object, typename Value>
+   void GetPtr(Value*& result, const Object* object) const;
+
+   template <typename Object, typename Value>
+   void GetByIdx(Value& result, Object* pObj, int idx = 0) const;
+
+   template <typename Object, typename Value>
+   void GetPtrByIdx(Value*& result, Object* pObj, int idx = 0) const;
+
+   template <typename Object, typename Value>
+   void Set(Object* object, const Value& value) const;
+
+   template <typename Object, typename Value>
+   void SetByIdx(Object* object, const Value& value, int idx = 0) const;
+
+   public:
+
   private:
    Field(uint64_t offset, std::size_t size, const std::type_info& type, const std::type_info& elementType, const Class* pClass, EnumAccessType accessType, const char* strType, const char* strName,
          int nElementCount);
@@ -490,8 +510,6 @@ class ConstructorMethod : public StaticMethod {
    ConstructorMethod(const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, std::shared_ptr<BaseCallable> cb, std::shared_ptr<BaseCallable> placementCb)
        : StaticMethod(pClass, accessType, szType, szName, szArgs, cb), mPlacementCallable(placementCb) {}
 };
-
-
 
 class TypeInfo {
   public:
@@ -705,6 +723,51 @@ class Class {
    StaticMethodMap mStaticMethodMap;
    ConstructorList mConstructors;
 };
+
+template <typename Object, typename Value>
+void Field::Get(Value& result, Object* object) const {
+   GetByIdx<Object, Value>(result, object);
+}
+
+template <typename Object, typename Value>
+void Field::GetPtr(Value*& result, const Object* object) const {
+   GetPtrByIdx<Object, Value>(result, object);
+}
+
+template <typename Object, typename Value>
+void Field::GetByIdx(Value& result, Object* pObj, int idx/* = 0*/) const {
+   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   const Class* pClass = Class::GetClassByType(typeid(Object));
+   if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
+   if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
+   if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");
+   result = *((Value*)((const char*)pObj + mOffset) + idx);
+}
+
+template <typename Object, typename Value>
+void Field::GetPtrByIdx(Value*& result, Object* pObj, int idx /*= 0*/) const {
+   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   const Class* pClass = Class::GetClassByType(typeid(Object));
+   if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
+   if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
+   if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");
+   result = ((Value*)((const char*)pObj + mOffset) + idx);
+}
+
+template <typename Object, typename Value>
+void Field::Set(Object* object, const Value& value) const {
+   SetByIdx<Object, Value>(object, value);
+}
+
+template <typename Object, typename Value>
+void Field::SetByIdx(Object* object, const Value& value, int idx/* = 0*/) const {
+   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   const Class* pClass = Class::GetClassByType(typeid(Object));
+   if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
+   if (typeid(Value) != mElementType) throw TypeMismatchError("invalid value type");
+   if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");
+   *((Value*)((const char*)object + mOffset) + idx) = value;
+}
 
 template<typename... Args>
 String MethodBase::FindMisMatchedInfo(const std::type_info& retType, const std::type_info& classType) const {
