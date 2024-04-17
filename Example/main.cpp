@@ -1,5 +1,6 @@
 #include "Prerequisites.h"
 #include "TestHeader.h"
+#include "TestHeader2.h"
 
 void main(int argc, char** argv) {
   using namespace cppfd;
@@ -79,4 +80,23 @@ void main(int argc, char** argv) {
       std::cout << "Get static field val:" << nval << " result:" << (nval == 100) << std::endl;
   }
 
+  auto pStaticMethod = pTestClass->GetStaticMethod("StaticOutput");
+  if (pStaticMethod)
+  {
+      pStaticMethod->Invoke();
+  }
+
+  pStaticMethod = pTestClass->GetStaticMethod("StaticOutput2");
+  if (pStaticMethod) {
+      pStaticMethod->Invoke<int>();
+  }
+  pStaticMethod = pTestClass->GetStaticMethod("StaticOutput3");
+  if (pStaticMethod) {
+      pStaticMethod->Invoke<int, int>(3);
+  }
+
+  pStaticMethod = pTestClass->GetStaticMethod("StaticOutput4");
+  if (pStaticMethod) {
+      pStaticMethod->Invoke(4);
+  }
 }

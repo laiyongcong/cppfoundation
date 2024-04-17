@@ -1,4 +1,5 @@
 #include "TestHeader.h"
+#include "TestHeader2.h"
 
 int TestClass::mStaticIntVal = 0;
 

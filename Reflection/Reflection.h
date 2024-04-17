@@ -463,6 +463,8 @@ class StaticMethod : public MethodBase {
    template <typename... Args>
    void Invoke(Args... args) const;
 
+   void Invoke() const;
+
    virtual String GetPrefix() const override { return "static " + MethodBase::GetPrefix(); }
 
   protected:

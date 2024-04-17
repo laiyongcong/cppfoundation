@@ -3,6 +3,7 @@
 // DO NOT modify this manually!
 
 #include "TestHeader.h"
+#include "TestHeader2.h"
 #include "RefelectionHelper.h"
 
 using namespace cppfd;
@@ -11,6 +12,9 @@ static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestCla
 	.RefConstructor<int, const std::string &>()
 	.RefConstMethod(&TestClass::Output,"Output")
 	.RefStaticMethod(&TestClass::StaticOutput,"StaticOutput")
+	.RefStaticMethod(&TestClass::StaticOutput2,"StaticOutput2")
+	.RefStaticMethod(&TestClass::StaticOutput3,"StaticOutput3")
+	.RefStaticMethod(&TestClass::StaticOutput4,"StaticOutput4")
 	.RefMethod(&TestClass::SetIntVal,"SetIntVal")
 	.RefMethod(&TestClass::SetStringVal,"SetStringVal")
 	.RefConstMethod(&TestClass::VirtualFunc,"VirtualFunc", true)
@@ -21,4 +25,7 @@ static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestCla
 static const ReflectiveClass<TestSubClass> g_refTestSubClass = ReflectiveClass<TestSubClass>("TestSubClass", (TestClass *)0)
 	.RefConstructor()
 	.RefField(&TestSubClass::mArray,"mArray");
+
+static const ReflectiveClass<TestStruct> g_refTestStruct = ReflectiveClass<TestStruct>("TestStruct")
+	.RefField(&TestStruct::mVal,"mVal");
 

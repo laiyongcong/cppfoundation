@@ -73,6 +73,22 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
  Method::Method(const Class* pClass, EnumAccessType accessType, const char* szType, const char* szName, const char* szArgs, bool bVirtual, std::shared_ptr<BaseCallable> cb)
      : MethodBase(pClass, accessType, szType, szName, szArgs, cb), mIsVirtual(bVirtual) {}
 
+ void StaticMethod::Invoke() const {
+   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+   typedef const StaticCallable<void> CallableType;
+   CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
+   if (cb) {
+     cb->invoke();
+     return;
+   }
+   if (TestCompatible(typeid(void), GetClass().GetTypeInfo(), nullptr, false)) {
+     cb = (CallableType*)(mCallable.get());
+     cb->invoke();
+     return;
+   }
+   throw TypeMismatchError(GetLongIdentity() + ":\n" + FindMisMatchedInfo(typeid(void), GetClass().GetTypeInfo()));
+ }
+
  String ConstructorMethod::GetPrefix() const { return GetClass().GetFullName() + "::" + GetName(); }
 
  Class::Class(const char* strName, const Class* super, std::size_t size, SuperCastFuncPtr superCastFunc, SuperCastConstFuncPtr superCastConstFunc,
