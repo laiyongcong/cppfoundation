@@ -353,9 +353,12 @@ class StaticField : public MemberBase {
 
    template <typename Value>
    void Get(Value& value) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
-    if (typeid(Value) != mType) throw TypeMismatchError("value");
-    ::memcpy(&value, mAddr, mSize);
+    GetByIdx<Value>(value);
+   }
+
+   template <typename Value>
+   void Set(const Value& value) const {
+    SetByIdx<Value>(value);
    }
 
    template <typename Object, typename Value>
@@ -364,6 +367,14 @@ class StaticField : public MemberBase {
     if (typeid(Value) != mElementType) throw TypeMismatchError("value");
     if (idx < 0 || idx >= mElementCount) throw IllegalAccessError("idx");
     result = *((Value*)mAddr + idx);
+   }
+
+   template <typename Object, typename Value>
+   void SetByIdx(const Value& value, int idx = 0) const {
+    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+    if (typeid(Value) != mElementType) throw TypeMismatchError("value");
+    if (idx < 0 || idx >= mElementCount) throw IllegalAccessError("idx");
+    *((Value*)mAddr + idx) = value;
    }
 
   private:

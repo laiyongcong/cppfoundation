@@ -70,5 +70,13 @@ void main(int argc, char** argv) {
       std::cout << std::endl;
   }
 
+  auto pStaticField = pTestSubClass->GetStaticField("mStaticIntVal");
+  if (pStaticField)
+  {
+      pStaticField->Set(100);
+      int nval;
+      pStaticField->Get(nval);
+      std::cout << "Get static field val:" << nval << " result:" << (nval == 100) << std::endl;
+  }
 
 }
