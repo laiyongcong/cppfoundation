@@ -2,6 +2,8 @@
 
 char g_fasterjson_encoding = FASTERJSON_ENCODING_UTF8;
 
+int __FASTERJSON_VERSION_1_1_6 = 0;
+
 static int _TravelJsonArrayBuffer( char top , register char **json_ptr , char *jpath , int jpath_len , int jpath_size
 	, funcCallbackOnJsonNode *pfuncCallbackOnEnterJsonBranch
 	, funcCallbackOnJsonNode *pfuncCallbackOnLeaveJsonBranch

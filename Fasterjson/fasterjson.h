@@ -34,7 +34,7 @@ extern "C" {
 #  define MAX(_a_, _b_) (_a_ > _b_ ? _a_ : _b_)
 #endif
 
-int __FASTERJSON_VERSION_1_1_6 = 0;
+extern int __FASTERJSON_VERSION_1_1_6;
 
 #define FASTERJSON_TOKEN_EOF -1
 #define FASTERJSON_TOKEN_LBB 1   /* { */
@@ -203,16 +203,15 @@ int __FASTERJSON_VERSION_1_1_6 = 0;
       }                                                                                                                                                                            \
       (_len_) = (int)((_base_) - (_begin_));                                                                                                                                       \
       if (*(_begin_) == 't') {                                                                                                                                                     \
-        if ((_len_) != 4 || MEMCMP((_begin_), !=, "true", len)) return FASTERJSON_ERROR_JSON_INVALID;                                                                              \
+        if ((_len_) != 4 || MEMCMP((_begin_), !=, "true", (_len_))) return FASTERJSON_ERROR_JSON_INVALID;                                                                          \
         (_len_) = 1;                                                                                                                                                               \
         (_tag_) = FASTERJSON_TOKEN_SPECIAL;                                                                                                                                        \
       } else if (*(_begin_) == 'f') {                                                                                                                                              \
-        if ((_len_) != 5 || MEMCMP((_begin_), !=, "false", len)) return FASTERJSON_ERROR_JSON_INVALID;                                                                             \
+        if ((_len_) != 5 || MEMCMP((_begin_), !=, "false", (_len_))) return FASTERJSON_ERROR_JSON_INVALID;                                                                         \
         (_len_) = 1;                                                                                                                                                               \
         (_tag_) = FASTERJSON_TOKEN_SPECIAL;                                                                                                                                        \
       } else if (*(_begin_) == 'n') {                                                                                                                                              \
-        if ((_len_) != 4 || MEMCMP((_begin_), !=, "null", len)) return FASTERJSON_ERROR_JSON_INVALID;                                                                              \
-        *(_begin_) = FASTERJSON_NULL;                                                                                                                                              \
+        if ((_len_) != 4 || MEMCMP((_begin_), !=, "null", (_len_))) return FASTERJSON_ERROR_JSON_INVALID;                                                                          \
         (_len_) = 1;                                                                                                                                                               \
         (_tag_) = FASTERJSON_TOKEN_SPECIAL;                                                                                                                                        \
       }                                                                                                                                                                            \
@@ -463,7 +462,7 @@ _WINDLL_FUNC int TravelJsonBuffer4( char *json_buffer , char *jpath , int jpath_
 
 #define FASTERJSON_ENCODING_UTF8		0 /* UTF-8 */
 #define FASTERJSON_ENCODING_GB18030		1 /* GB18030/GBK/GB2312 */
-_WINDLL_FUNC char		g_fasterjson_encoding ;
+extern char		g_fasterjson_encoding ;
 
 #define FASTERJSON_NULL				127
 

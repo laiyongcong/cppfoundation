@@ -27,5 +27,20 @@ static const ReflectiveClass<TestSubClass> g_refTestSubClass = ReflectiveClass<T
 	.RefField(&TestSubClass::mArray,"mArray");
 
 static const ReflectiveClass<TestStruct> g_refTestStruct = ReflectiveClass<TestStruct>("TestStruct")
-	.RefField(&TestStruct::mVal,"mVal");
+	.RefField(&TestStruct::mVal,"mVal")
+	.RefField(&TestStruct::StrArray,"StrArray")
+	.RefField(&TestStruct::IntValMap,"IntValMap");
+
+static const ReflectiveClass<TestBaseObj> g_refTestBaseObj = ReflectiveClass<TestBaseObj>("TestBaseObj")
+	.RefField(&TestBaseObj::Content,"Content")
+	.RefField(&TestBaseObj::BoolVal,"BoolVal")
+	.RefField(&TestBaseObj::ShortVal,"ShortVal")
+	.RefField(&TestBaseObj::IntVal,"IntVal")
+	.RefField(&TestBaseObj::Int64Val,"Int64Val")
+	.RefField(&TestBaseObj::StrVal,"StrVal")
+	.RefField(&TestBaseObj::FloatVal,"FloatVal")
+	.RefField(&TestBaseObj::DoubleVal,"DoubleVal")
+	.RefField(&TestBaseObj::SubObj,"SubObj")
+	.RefField(&TestBaseObj::SubObjArray,"SubObjArray")
+	.RefField(&TestBaseObj::SubObjMap,"SubObjMap");
 

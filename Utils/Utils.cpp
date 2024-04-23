@@ -95,4 +95,98 @@ bool Utils::StringEndWith(const String& inputString, const String& strPattern, b
 
  void Utils::String2LowerCase(String& strString) { std::transform(strString.begin(), strString.end(), strString.begin(), ::tolower); }
 
- }  // namespace cppfd
+void Utils::StringExcape(const String& strInput, String& strRes) {
+  static std::map<char, String> escapeChars = {
+      {'\\', "\\\\"}, 
+      {'\'', "\\'"}, 
+      {'\"', "\\\""}, 
+      {'\n', "\\n"}, 
+      {'\r', "\\r"}, 
+      {'\t', "\\t"}, 
+      {'\b', "\\b"},
+      {'\f', "\\f"},  
+      {'\v', "\\v"}, 
+      {'\a', "\\a"},  
+      //{'{', "\\{"},  
+      //{'}', "\\}"},  
+      //{'[', "\\["},  
+      //{']', "\\]"}
+  };
+
+  for (char ch : strInput) {
+    if (escapeChars.count(ch)) {
+      strRes.append(escapeChars[ch]);
+    } else {
+      strRes.append(1, ch);
+    }
+  }
+ }
+
+void Utils::StringUnExcape(const String& strInput, String& strRes) {
+  static std::map<String, char> unescapeMap = {
+      {"\\\\", '\\'}, 
+      {"\\'", '\''}, 
+      {"\\\"", '\"'}, 
+      {"\\n", '\n'}, 
+      {"\\r", '\r'}, 
+      {"\\t", '\t'}, 
+      {"\\b", '\b'},
+      {"\\f", '\f'},  
+      {"\\v", '\v'}, 
+      {"\\a", '\a'},  
+      //{"\\{", '{'},  
+      //{"\\}", '}'},  
+      //{"\\[", '['},  
+      //{"\\]", ']'}
+  };
+
+  for (size_t i = 0; i < strInput.size(); ++i) {
+    if (strInput[i] == '\\' && i + 1 < strInput.size()) {
+      String escapeSeq = strInput.substr(i, 2);
+      if (unescapeMap.count(escapeSeq)) {
+        strRes += unescapeMap[escapeSeq];
+        i++;
+      } else {
+        strRes += strInput[i];
+      }
+    } else {
+      strRes += strInput[i];
+    }
+  }
+ }
+
+String Utils::Double3String(double dNumber, uint32_t uDigit) {
+  if (uDigit > 20) uDigit = 20;
+
+  int64_t nIntPart;
+  double doublePart;
+  char szInt[64] = {0};
+  char szDouble[64] = {0};
+  nIntPart = (int64_t)dNumber;
+  doublePart = dNumber - nIntPart;
+
+  if (nIntPart == 0 && dNumber < 0.0) {
+    safe_printf(szInt, sizeof(szInt), "-0");
+  } else {
+    safe_printf(szInt, sizeof(szInt), "%" PRId64, nIntPart);
+  }
+  doublePart = fabs(pow(10, uDigit) * doublePart);
+
+  uint64_t uldoublePart = (uint64_t)doublePart;
+  while (uldoublePart % 10 == 0 && uldoublePart > 0) {
+    uldoublePart /= 10;
+    uDigit--;
+  }
+  while (uDigit > 0) {
+    szDouble[uDigit - 1] = '0' + uldoublePart % 10;
+    uDigit--;
+    uldoublePart /= 10;
+  }
+
+  String strRes(szInt);
+  strRes.append(".");
+  strRes.append(szDouble);
+  return strRes;
+ }
+
+}  // namespace cppfd

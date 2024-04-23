@@ -586,6 +586,7 @@ class Class {
    static bool ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& argsList2);
 
    const Field* GetField(const char* szName, bool bSearchSuper = true) const;
+   FORCEINLINE const FieldList& GetFields() const { return mFields; }
    const StaticField* GetStaticField(const char* szName, bool bSearchSuper = true) const;
    const Method* GetMethod(const char* szName, bool bSearchSuper = true) const;
    const StaticMethod* GetStaticMethod(const char* szName, bool bSearchSuper = true) const;

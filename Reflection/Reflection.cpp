@@ -234,7 +234,7 @@ bool Class::ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& 
    return true;
 }
 
-const cppfd::Field* Class::GetField(const char* szName, bool bSearchSuper /*= true*/) const { 
+const Field* Class::GetField(const char* szName, bool bSearchSuper /*= true*/) const { 
    auto it = mFieldMap.find(szName);
    if (it == mFieldMap.end()) {
      if (bSearchSuper && mSuper) return mSuper->GetField(szName, bSearchSuper);

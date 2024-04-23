@@ -12,7 +12,7 @@ class ReflectiveClass {
 
   public:
    ReflectiveClass() {
-     InitClass(Demangle(typeid(T)), nullptr, &NullSuperCast, &NullSuperCastConst);
+     InitClass(Demangle(typeid(T).name()).c_str(), nullptr, &NullSuperCast, &NullSuperCastConst);
    }
 
    ReflectiveClass(const char* szName) {
@@ -22,7 +22,7 @@ class ReflectiveClass {
    template<typename SuperT>
    ReflectiveClass(const SuperT*) {
      const Class* pClass = Class::GetClassByType(typeid(SuperT));
-     InitClass(Demangle(typeid(T)), pClass, &SuperCast<SuperT>, &SuperCastConst<SuperT>);
+    InitClass(Demangle(typeid(T).name()).c_str(), pClass, &SuperCast<SuperT>, &SuperCastConst<SuperT>);
    }
 
    template <typename SuperT>

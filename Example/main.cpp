@@ -1,6 +1,7 @@
 #include "Prerequisites.h"
 #include "TestHeader.h"
 #include "TestHeader2.h"
+#include "RefJson.h"
 
 void main(int argc, char** argv) {
   using namespace cppfd;
@@ -99,4 +100,35 @@ void main(int argc, char** argv) {
   if (pStaticMethod) {
       pStaticMethod->Invoke(4);
   }
+  subobj.SetStringVal("{\"a\":1}");
+  String strJson = JsonBase::ToJsonString(&subobj);
+  std::cout << strJson << std::endl;
+  TestSubClass subobj2;
+  JsonBase::FromJsonString(&subobj2, strJson);
+
+  TestStruct testStruct1;
+  testStruct1.mVal = 1;
+  testStruct1.StrArray.mItems.push_back("a");
+  testStruct1.StrArray.mItems.push_back("{bbb\r\n\tccc}[]");
+  testStruct1.IntValMap.mObjMap["val1"] = 1;
+  testStruct1.IntValMap.mObjMap["val2"] = 2;
+
+  TestStruct testStruct2;
+  testStruct2.mVal = 2;
+  testStruct2.StrArray.mItems.push_back("b");
+  testStruct2.StrArray.mItems.push_back("{bbb\r\n\tccc}[]");
+  testStruct2.IntValMap.mObjMap["val1"] = 1;
+  testStruct2.IntValMap.mObjMap["val2"] = 2;
+
+  TestBaseObj baseObj, baseObj2;
+  baseObj.SubObjArray.mItems.push_back(testStruct1);
+  baseObj.SubObjArray.mItems.push_back(testStruct2);
+
+  baseObj.SubObjMap.mObjMap["testStruct1"] = testStruct1;
+  baseObj.SubObjMap.mObjMap["testStruct2"] = testStruct2;
+
+  strJson = JsonBase::ToJsonString(&baseObj);
+  std::cout << strJson << std::endl;
+
+  JsonBase::FromJsonString(&baseObj2, strJson);
 }
