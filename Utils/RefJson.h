@@ -2,11 +2,6 @@
 #include "RefelectionHelper.h"
 
 namespace cppfd {
-
-class RefJson {
- public:
-};
-
 enum EJsonObjType {
 	EJsonObj = 0,
 	EJsonArray = 1,
