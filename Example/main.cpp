@@ -131,4 +131,42 @@ void main(int argc, char** argv) {
   std::cout << strJson << std::endl;
 
   JsonBase::FromJsonString(&baseObj2, strJson);
+
+  JsonArray<int> TestArray, TestArray2;
+  TestArray.mItems.push_back(10);
+  TestArray.mItems.push_back(1);
+  TestArray.mItems.push_back(100);
+
+  strJson = JsonBase::ToJsonString(&TestArray);
+  std::cout << strJson << std::endl;
+
+  JsonBase::FromJsonString(&TestArray2, strJson);
+
+  JsonArray<TestStruct> testObjArray, testObjArray2;
+  testObjArray.mItems.push_back(testStruct1);
+  testObjArray.mItems.push_back(testStruct2);
+
+  strJson = JsonBase::ToJsonString(&testObjArray);
+  std::cout << strJson << std::endl;
+
+  JsonBase::FromJsonString(&testObjArray2, strJson);
+
+
+  JsonMap<int> testMap, testMap2;
+  testMap.mObjMap["a"] = 1;
+  testMap.mObjMap["b"] = 2;
+
+  strJson = JsonBase::ToJsonString(&testMap);
+  std::cout << strJson << std::endl;
+
+  JsonBase::FromJsonString(&testMap2, strJson);
+
+  JsonMap<TestStruct> testObjMap, testObjMap2;
+  testObjMap.mObjMap["a"] = testStruct1;
+  testObjMap.mObjMap["b"] = testStruct2;
+
+  strJson = JsonBase::ToJsonString(&testObjMap);
+  std::cout << strJson << std::endl;
+
+  JsonBase::FromJsonString(&testObjMap2, strJson);
 }

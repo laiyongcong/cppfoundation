@@ -55,21 +55,28 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
       szContent = szBegin;
       nContentLen = nLen;
 
-      if (pField && IsNullContent(szContent, nContentLen) == false) {
-        const Class* pClass = Class::GetClassByType(pField->GetElementType());
-        if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
-          if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
-          JsonBase* pVector = (JsonBase*)pTempData;
-          if (pVector && traveler.mFunc) {
-            pVector->AddItemByContent(szContent, nContentLen);
-          }
-        } else {
-          if (traveler.mFunc && traveler.mIdx < nCount) {
-            traveler.mCurrentData = NULL;
-            if (pTempData != NULL) {
-              traveler.mCurrentData = (char*)pTempData + nElementSize * traveler.mIdx;
+      if (IsNullContent(szContent, nContentLen) == false) {
+        if (pField) {
+          const Class* pClass = Class::GetClassByType(pField->GetElementType());
+          if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
+            if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
+            JsonBase* pVector = (JsonBase*)pTempData;
+            if (traveler.mFunc) {
+              pVector->AddItemByContent(szContent, nContentLen);
             }
-            traveler.mFunc(traveler.mCurrentData, *pField, szContent, nContentLen);
+          } else {
+            if (traveler.mFunc && traveler.mIdx < nCount) {
+              traveler.mCurrentData = NULL;
+              if (pTempData != NULL) {
+                traveler.mCurrentData = (char*)pTempData + nElementSize * traveler.mIdx;
+              }
+              traveler.mFunc(traveler.mCurrentData, *pField, szContent, nContentLen);
+            }
+          }
+        } else if (traveler.mClass && pVectorClass->IsSuperOf(*traveler.mClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
+          JsonBase* pVector = (JsonBase*)pTempData;
+          if (traveler.mFunc) {
+            pVector->AddItemByContent(szContent, nContentLen);
           }
         }
       }
@@ -459,6 +466,8 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
 
 String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) { 
   const static Class* pJsonClass = Class::GetClassByType(typeid(JsonBase));
+  if (pJsonClass->IsSuperOf(refClass)) return ((JsonBase*)pAddr)->ToJsonString();
+
   String strRes = "{";
   int nCounter = 0;
   const Class* pClass = &refClass;
