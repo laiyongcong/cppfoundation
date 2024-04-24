@@ -309,16 +309,16 @@ class Field : public MemberBase {
    FORCEINLINE uint64_t GetOffset() const { return mOffset; }
 
    template <typename Object, typename Value>
-   void Get(Value& result, Object* object) const;
+   void Get(const Object* object, Value& result) const;
 
    template <typename Object, typename Value>
-   void GetPtr(Value*& result, const Object* object) const;
+   void GetPtr(const Object* object, Value*& result) const;
 
    template <typename Object, typename Value>
-   void GetByIdx(Value& result, Object* pObj, int idx = 0) const;
+   void GetByIdx(const Object* pObj, Value& result, int idx = 0) const;
 
    template <typename Object, typename Value>
-   void GetPtrByIdx(Value*& result, Object* pObj, int idx = 0) const;
+   void GetPtrByIdx(const Object* pObj, Value*& result, int idx = 0) const;
 
    template <typename Object, typename Value>
    void Set(Object* object, const Value& value) const;
@@ -706,17 +706,17 @@ class Class {
 };
 
 template <typename Object, typename Value>
-void Field::Get(Value& result, Object* object) const {
-   GetByIdx<Object, Value>(result, object);
+void Field::Get(const Object* object, Value& result) const {
+   GetByIdx<Object, Value>(object, result);
 }
 
 template <typename Object, typename Value>
-void Field::GetPtr(Value*& result, const Object* object) const {
-   GetPtrByIdx<Object, Value>(result, object);
+void Field::GetPtr(const Object* object, Value*& result) const {
+   GetPtrByIdx<Object, Value>(object, result);
 }
 
 template <typename Object, typename Value>
-void Field::GetByIdx(Value& result, Object* pObj, int idx/* = 0*/) const {
+void Field::GetByIdx(const Object* pObj, Value& result, int idx/* = 0*/) const {
    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
    const Class* pClass = Class::GetClassByType(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
@@ -726,7 +726,7 @@ void Field::GetByIdx(Value& result, Object* pObj, int idx/* = 0*/) const {
 }
 
 template <typename Object, typename Value>
-void Field::GetPtrByIdx(Value*& result, Object* pObj, int idx /*= 0*/) const {
+void Field::GetPtrByIdx(const Object* pObj, Value*& result, int idx /*= 0*/) const {
    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
    const Class* pClass = Class::GetClassByType(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");

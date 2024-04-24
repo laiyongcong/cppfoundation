@@ -54,7 +54,7 @@ void main(int argc, char** argv) {
   {
     int nVal;
     pField->Set(&subobj, 5);
-    pField->Get(nVal, &subobj);
+    pField->Get(&subobj, nVal);
     std::cout << "Get field val:" << nVal << " result:" << (nVal == 5) << std::endl;
   }
 
@@ -66,7 +66,7 @@ void main(int argc, char** argv) {
       {
         pField->SetByIdx(&subobj, i, i);
         int nval;
-        pField->GetByIdx(nval, &subobj, i);
+        pField->GetByIdx(&subobj, nval, i);
         std::cout << nval << " ";
       }
       std::cout << std::endl;
