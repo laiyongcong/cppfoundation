@@ -119,4 +119,4 @@ bool JsonBase::IsBuildInType(const std::type_info& tinfo) {
 
 ## JsonArray和JsonMap
 * JsonArray可以包装基本类型或者反射过的类型，其表现形式为json中的变长数组
-* JsonMap 可以映射一个json中数值类型相同的key-value对，这些key-value对被包含在“{}”中，只要为了解决key不确定的情形下遇到的问题
+* JsonMap 可以映射一个json中数值类型相同的key-value对，这些key-value对被包含在“{}”中，只要为了解决key不确定的情形下遇到的问题。其中value必须是基本类型，或者被反射过的类型。
