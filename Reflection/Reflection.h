@@ -137,8 +137,8 @@ struct Callable : public BaseCallable {
 template <typename R>
 struct Callable<R> : public BaseCallable {
   TypeList ArgList;
-  Callable() { ArgsHelper<void>::ListArgs(ArgList); }
-  int32_t GetArgsCount() const override { return (int32_t)ArgList.size(); }
+  Callable() {}
+  int32_t GetArgsCount() const override { return 0; }
   virtual const TypeList& GetArgTypeList() const override { return ArgList; }
   virtual const std::type_info& GetRetType() const override { return typeid(R); }
   virtual String GetArgsString() const override { return "()"; }
