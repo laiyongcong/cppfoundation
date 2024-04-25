@@ -1,5 +1,5 @@
 # 简介
-cppfoundation是一个c++基础库，是源于一个游戏项目的服务器基础代码部分，当前是重写后梳理出来的纯净的代码，主要目的是完成跨平台的封装，以编程框架的形式降低在C++下进行编程的门槛。
+cppfoundation是一个c++基础库，这部分代码曾经在某游戏项目中使用过，经过一段时间思考，觉得曾经写过的一些代码有一定的价值，于是把这些部分重新整理，供大家参考。 本库主要目的是完成跨平台的封装，以编程框架的形式降低在C++下进行编程的门槛。
 
 该基础库主要包含：
 * c++反射（已完成）
@@ -10,7 +10,7 @@ cppfoundation是一个c++基础库，是源于一个游戏项目的服务器基�
 
 # C++反射（reflection）
 ## 反射工具
-反射工具基于llvm项目，通过开发clang工具来分析项目头文件中的反射标记，生成反射代码。详见Tools/ReflectionTool, 目前Bin目录下是已经编译好的windows平台下的程序(其它平台可以自行按照CMakeList中的说明自行编译)，推荐在visual studio工程中使用PreBuild方式触发反射代码生成。
+相对于虚幻的UHT，本基础库反射工具基于llvm项目，通过开发的clang工具来分析项目头文件中的反射标记，生成反射代码，对C++的语法支持得更彻底。工具源码详见Tools/ReflectionTool, 目前Bin目录下是已经编译好的windows平台下的程序(其它平台可以自行按照CMakeList中的说明自行编译)，推荐在visual studio工程中使用PreBuild方式触发反射代码生成。
 
 在Reflection.h中，反射标记如下
 ```
@@ -93,6 +93,14 @@ struct TestStruct {
 序列化后的json可能如下：
 ```
 {"a":1, "msg":"hello world", "arr":[1,2,3], "obj":{"x":4, "y":5, "z":6}}
+```
+测试代码如下：
+```
+std::string strJson = "{\"a\":1, \"msg\":\"hello world\", \"arr\":[1,2,3], \"obj\":{\"x\":4, \"y\":5, \"z\":6}}";
+TestStruct testS;
+JsonBase::FromJsonString(&testS, strJson); //读取json的数据，反序列化到结构体中
+testS.a = 100;
+std::cout << JsonBase::ToJsonString(&testS) << std::endl;
 ```
 结构体之间支持嵌套， 但是被嵌套进去的类或者结构体必须是反射过的
 
