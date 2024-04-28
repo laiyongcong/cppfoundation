@@ -581,6 +581,11 @@ class Class {
    FORCEINLINE int GenFieldIdx() const { return mFieldIdx++; }
    static const Class* GetClassByName(const String& strName);
    static const Class* GetClassByType(const std::type_info& type);
+   template<typename T>
+   static const Class* GetClass() {
+    return GetClassByType(typeid(T));
+   }
+   static const Class* GetClass(const String& strName) { return GetClassByName(strName);}
    static std::pair<EnumClassType, const Class*> FindClassByType(const std::type_info& type);
    static bool IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr = 0, bool bVirtualFunc = false);
    static bool ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& argsList2);

@@ -5,8 +5,8 @@
 
 void main(int argc, char** argv) {
   using namespace cppfd;
-  const Class* pTestClass = Class::GetClassByType(typeid(TestClass));
-  const Class* pTestSubClass = Class::GetClassByType(typeid(TestSubClass));
+  const Class* pTestClass = Class::GetClass<TestClass>();
+  const Class* pTestSubClass = Class::GetClass<TestSubClass>();
   if (pTestClass == nullptr || pTestSubClass == nullptr) {
     std::cout << "refection failed" << std::endl;
   }
