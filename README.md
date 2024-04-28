@@ -73,7 +73,7 @@ endif()
 ```
 ## 关于反射系统的注意事项
 * 被反射的类或者结构体目前不支持多重继承，只允许有一个父类被反射。在多重继承的情况下，只要不是所有的父类都参与反射，是允许的
-* 基础类型的JsonArray和JsonMap反射代码已经包含在库里面，不需要自行手写；参与反射的其他类型的JsonArray和JsonMap反射代码也会被工具自动自动生成
+* 基础类型的JsonArray和JsonMap反射代码已经包含在库里面，不需要自行手写；参与反射的其他类型的JsonArray和JsonMap反射代码也会被工具自动生成
 
 # Json解析
 Utils/RefJson 实现了基于c++反射的json读写，即类对象实例或结构体实例，可以进行json的序列化和反序列化，json解析部分使用了[fasterjson](https://github.com/calvinwilliams/fasterjson), 形如以下的结构体：
