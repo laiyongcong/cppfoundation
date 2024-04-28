@@ -24,7 +24,7 @@ class JsonBase {
   friend int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler);
   friend int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler);
  public:
-  virtual EJsonObjType GetType() const = 0;
+  virtual EJsonObjType GetJsonType() const = 0;
   virtual const std::type_info& GetItemType() const = 0;
   virtual String ToJsonString() const = 0;
   
@@ -64,7 +64,7 @@ class JsonArray : public JsonBase {
  public:
   JsonArray() : mJsonNewLine(false) { /*static const ReflectiveClass<JsonArray<T> > ref((JsonBase*)nullptr);*/}
 
-  virtual EJsonObjType GetType() const override { return EJsonArray; }
+  virtual EJsonObjType GetJsonType() const override { return EJsonArray; }
   virtual const std::type_info& GetItemType() const { return typeid(T); }
   virtual String ToJsonString() const override {
     String strRes;
@@ -108,7 +108,7 @@ template<typename T>
 class JsonMap : public JsonBase {
  public:
   JsonMap() { /*static const ReflectiveClass<JsonMap<T> > ref((JsonBase*)nullptr);*/ }
-  virtual EJsonObjType GetType() const override { return EJsonMap; }
+  virtual EJsonObjType GetJsonType() const override { return EJsonMap; }
   virtual const std::type_info& GetItemType() const { return typeid(T); }
 
   virtual String ToJsonString() const override {

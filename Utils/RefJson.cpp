@@ -82,7 +82,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
       if (IsNullContent(szContent, nContentLen) == false) {
         if (pField) {
           const Class* pClass = Class::GetClass(pField->GetElementType());
-          if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
+          if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray) {
             if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
             JsonBase* pVector = (JsonBase*)pTempData;
             if (traveler.mFunc) {
@@ -97,7 +97,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
               traveler.mFunc(traveler.mCurrentData, *pField, szContent, nContentLen);
             }
           }
-        } else if (traveler.mClass && pVectorClass->IsSuperOf(*traveler.mClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
+        } else if (traveler.mClass && pVectorClass->IsSuperOf(*traveler.mClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray) {
           JsonBase* pVector = (JsonBase*)pTempData;
           if (traveler.mFunc) {
             pVector->AddItemByContent(szContent, nContentLen);
@@ -113,7 +113,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
         const Class* pClass = Class::GetClass(pField->GetElementType());
         if (pClass == nullptr) throw JsonParseError("field:" + String(pField->GetName()) + " unknow element class:" + Demangle(pField->GetElementType().name()));
         if (pTempData != NULL) {
-          if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetType() == EJsonArray)  // Vector
+          if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray)  // Vector
           {
             if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
             pJsonBase = (JsonBase*)pTempData;
@@ -137,7 +137,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
         }
       } else {
         const Class* pClass = traveler.mClass;
-        if (pTempData != nullptr && pClass != nullptr && pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetType() == EJsonArray)  // Vector
+        if (pTempData != nullptr && pClass != nullptr && pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray)  // Vector
         {
           pJsonBase = (JsonBase*)pTempData;
           if (pJsonBase) {
@@ -267,7 +267,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
         traveler.mFunc(traveler.mCurrentData, *traveler.mField, szContent, nContentLen);
       }
 
-      if (traveler.mClass && pMapClass->IsSuperOf(*traveler.mClass) && traveler.mCurrentData != NULL && ((JsonBase*)traveler.mCurrentData)->GetType() == EJsonMap) {
+      if (traveler.mClass && pMapClass->IsSuperOf(*traveler.mClass) && traveler.mCurrentData != NULL && ((JsonBase*)traveler.mCurrentData)->GetJsonType() == EJsonMap) {
         ((JsonBase*)traveler.mCurrentData)->AddItemByContent(szContent, nContentLen, szTemp);
       }
     } else if (tag == FASTERJSON_TOKEN_LBB) {
@@ -275,7 +275,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
       JsonBase* pJsonBase = nullptr;
       void* pNewItem = nullptr;
 
-      if (pOldClass && pMapClass->IsSuperOf(*pOldClass) && pData != nullptr && ((JsonBase*)pData)->GetType() == EJsonMap) {
+      if (pOldClass && pMapClass->IsSuperOf(*pOldClass) && pData != nullptr && ((JsonBase*)pData)->GetJsonType() == EJsonMap) {
         pJsonBase = (JsonBase*)pData;
         pNewItem = pJsonBase->NewItem();
         traveler.mCurrentData = pNewItem;
@@ -516,7 +516,7 @@ String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) {
       const Class* pFieldClass = Class::GetClass(elementType);
 
       JsonBase* pJson = nullptr;
-      if (pFieldClass && pJsonClass->IsSuperOf(*pFieldClass) && ((JsonBase*)((char*)pAddr + pField->GetOffset()))->GetType() != EJsonObj) {
+      if (pFieldClass && pJsonClass->IsSuperOf(*pFieldClass) && ((JsonBase*)((char*)pAddr + pField->GetOffset()))->GetJsonType() != EJsonObj) {
         if (nElementCount != 1) throw JsonWriteError("multi elements, json field:" + String(pField->GetName()));
         pJson = (JsonBase*)((char*)pAddr + pField->GetOffset());
         if (pJson->IsEmpty()) continue;
