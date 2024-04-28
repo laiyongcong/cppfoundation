@@ -120,19 +120,19 @@ int EnumValCompare(const name_val_line& LHS, const name_val_line& RHS) {
 //    const std::string& strClass = info.mName;
 //    if(info.mParent != NULL) 
 //    {
-//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n\tlua_tinker::class_inh<%s,%s>(pStat);\r\n",
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\n\tlua_tinker::class_inh<%s,%s>(pStat);\n",
 //            strClass.c_str(), strClass.c_str(), strClass.c_str(), info.mParent->mName.c_str());
 //    } 
 //    else
 //    {
-//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\r\n",strClass.c_str(), strClass.c_str());
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_add<%s>(pStat, \"Class%s\");\n",strClass.c_str(), strClass.c_str());
 //    }
 //    strContent.append(szBuff);
 //    ncount++;
 //
 //    if(info.mWithConstructor) 
 //    {
-//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_con<%s>(pStat, &lua_tinker::constructor<%s>);\r\n",strClass.c_str(), strClass.c_str());
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_con<%s>(pStat, &lua_tinker::constructor<%s>);\n",strClass.c_str(), strClass.c_str());
 //        strContent.append(szBuff);
 //        ncount++;
 //    }
@@ -141,11 +141,11 @@ int EnumValCompare(const name_val_line& LHS, const name_val_line& RHS) {
 //        const FFuncMember& func = itf->second;
 //        if(func.mStatic) 
 //        {
-//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_static_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_static_def<%s>(pStat, \"%s\", &%s::%s);\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
 //        } 
 //        else 
 //        {
-//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_def<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
+//            snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_def<%s>(pStat, \"%s\", &%s::%s);\n",strClass.c_str(), func.mFuncName.c_str(), strClass.c_str(), func.mFuncName.c_str());
 //        }
 //        strContent.append(szBuff);
 //        ncount++;
@@ -154,7 +154,7 @@ int EnumValCompare(const name_val_line& LHS, const name_val_line& RHS) {
 //    for(auto itm = info.mMembers.begin(); itm != info.mMembers.end(); itm++) 
 //    {
 //        const std::string& strMember = (*itm).mName;
-//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_mem<%s>(pStat, \"%s\", &%s::%s);\r\n",strClass.c_str(), strMember.c_str(), strClass.c_str(), strMember.c_str());
+//        snprintf(szBuff, sizeof(szBuff), "\tlua_tinker::class_mem<%s>(pStat, \"%s\", &%s::%s);\n",strClass.c_str(), strMember.c_str(), strClass.c_str(), strMember.c_str());
 //        strContent.append(szBuff);
 //        ncount++;
 //    }
@@ -184,7 +184,7 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
         const FFuncMember& func = *itf;
         if (func.mStatic)
         {
-            snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefStaticMethod(&%s::%s,\"%s\")",
+            snprintf(szBuff, sizeof(szBuff), "\n\t.RefStaticMethod(&%s::%s,\"%s\")",
                 strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
         }
         else
@@ -193,7 +193,7 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
             {
                 if (func.mParams.empty()) 
                 {
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstructor()");
+                    snprintf(szBuff, sizeof(szBuff), "\n\t.RefConstructor()");
                 }
                 else 
                 {
@@ -206,7 +206,7 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
                             strParamTypes.append(", ");
                         }
                     }
-                    snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstructor<%s>()", strParamTypes.c_str());
+                    snprintf(szBuff, sizeof(szBuff), "\n\t.RefConstructor<%s>()", strParamTypes.c_str());
                 }
             }
             else 
@@ -214,16 +214,16 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
                 if (func.mIsConst)
                 {
                     if (func.mVirtual)
-                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                        snprintf(szBuff, sizeof(szBuff), "\n\t.RefConstMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                     else
-                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefConstMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                        snprintf(szBuff, sizeof(szBuff), "\n\t.RefConstMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 } 
                 else 
                 {
                     if (func.mVirtual)
-                        snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                        snprintf(szBuff, sizeof(szBuff), "\n\t.RefMethod(&%s::%s,\"%s\", true)", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                     else
-                      snprintf(szBuff, sizeof(szBuff), "\r\n\t.RefMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
+                      snprintf(szBuff, sizeof(szBuff), "\n\t.RefMethod(&%s::%s,\"%s\")", strClass.c_str(), func.mFuncName.c_str(), func.mFuncName.c_str());
                 }
             }
             
@@ -237,18 +237,28 @@ int ExportClass2Ref(const FClassInfo& info, std::string& strContent)
         std::string strMember = (*itm).mName;
         if (itm->mStatic) {
             snprintf(szBuff, sizeof(szBuff),
-                     "\r\n\t.RefStaticField(&%s::%s,\"%s\")", strClass.c_str(),
+                     "\n\t.RefStaticField(&%s::%s,\"%s\")", strClass.c_str(),
                      strMember.c_str(), strMember.c_str());
         } else {
             snprintf(szBuff, sizeof(szBuff),
-                     "\r\n\t.RefField(&%s::%s,\"%s\")", strClass.c_str(),
+                     "\n\t.RefField(&%s::%s,\"%s\")", strClass.c_str(),
                      strMember.c_str(), strMember.c_str());
         }
         strContent.append(szBuff);
         ncount++;
     }
 
-    strContent.append(";\r\n");
+    strContent.append(";\n");
+
+    snprintf(szBuff, sizeof(szBuff),
+             "static const ReflectiveClass<JsonArray<%s> > g_ref%sArray = ReflectiveClass<JsonArray<%s> >((JsonBase*)nullptr);\n",
+             strClass.c_str(), strClass.c_str(), strClass.c_str());
+    strContent.append(szBuff);
+    snprintf(szBuff, sizeof(szBuff),
+             "static const ReflectiveClass<JsonMap<%s> > g_ref%sMap = ReflectiveClass<JsonMap<%s> >((JsonBase*)nullptr);\n",
+             strClass.c_str(), strClass.c_str(), strClass.c_str());
+    strContent.append(szBuff);
+
     ncount++;
     return ncount;
 }
@@ -437,11 +447,11 @@ public:
 
                     if (bOldExport == false)
                     {
-                        snprintf(szBuff, sizeof(szBuff), "\r\n//--------------------------------------- %s ---------------------------------------\r\n", class_name.str().c_str());
+                        snprintf(szBuff, sizeof(szBuff), "\n//--------------------------------------- %s ---------------------------------------\n", class_name.str().c_str());
                             ReflectionString.append(szBuff);
                     }
 
-                    snprintf(szBuff, sizeof(szBuff), "struct %s::%s  %s::%s;\r\n", class_name.str().c_str(), decl_name.str().c_str(), class_name.str().c_str(), decl_name.str().c_str());
+                    snprintf(szBuff, sizeof(szBuff), "struct %s::%s  %s::%s;\n", class_name.str().c_str(), decl_name.str().c_str(), class_name.str().c_str(), decl_name.str().c_str());
                     ReflectionString.append(szBuff);
                     bExport = true;
                     bOldExport = true;
@@ -642,7 +652,7 @@ bool CheckIsUpdateData(SmallString<256>& file_path)
     StringRef SourceData = Content->getBuffer();
 
     SmallVector<StringRef, 12> Headers;
-    SplitString(SourceData, Headers, "\r\n");
+    SplitString(SourceData, Headers, "\n");
 
     SmallString<256> code_path = sys::path::parent_path(sys::path::parent_path(file_path));
 
@@ -661,7 +671,7 @@ bool CheckIsUpdateData(SmallString<256>& file_path)
         DBData.append(Header.str());
         DBData.append("\t");
         DBData.append(szTimeBuff);
-        DBData.append("\r\n");
+        DBData.append("\n");
     }
 
     SmallString<256> db_path = file_path;
@@ -759,9 +769,12 @@ int main(int argc, char **argv)
     std::unique_ptr<FrontendAction> Action(new ReflectionStructCSVisitAction);
     clang::tooling::runToolOnCodeWithArgs(std::move(Action), Code->getBuffer(), clang_args);
 
-    if (Reflection_HeaderKey.find("RefelectionHelper.h") == Reflection_HeaderKey.end())
-    {
+    if (Reflection_HeaderKey.find("RefelectionHelper.h") == Reflection_HeaderKey.end()) {
         Reflection_Header.push_back("RefelectionHelper.h");
+    }
+
+    if (Reflection_HeaderKey.find("RefJson.h") == Reflection_HeaderKey.end()) {
+        Reflection_Header.push_back("RefJson.h");
     }
 
     std::string header;
@@ -783,6 +796,9 @@ int main(int argc, char **argv)
 
     std::string strRefContent;
     strRefContent.append(header);
+
+
+
     for (size_t i = 0, isize = ClassesVec.size(); i < isize; i++) {
       ExportClass2Ref(*ClassesVec[i], strRefContent);
       strRefContent.append("\n");

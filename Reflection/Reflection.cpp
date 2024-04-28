@@ -234,6 +234,30 @@ bool Class::ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& 
    return true;
 }
 
+void Class::ResolveRef(const std::type_info& superType, const std::type_info& currType) {
+   TypeInfo superTypeInfo(superType);
+   TypeInfo currTypeInfo(currType);
+   const Class* pSuperClass = Class::GetClassByType(superType);
+   const Class* pCurrClass = Class::GetClassByType(currType);
+   if (pCurrClass != nullptr && pSuperClass != nullptr && pCurrClass->mSuper == nullptr) {
+     pCurrClass->mSuper = pSuperClass;
+     return;
+   }
+   static std::map<TypeInfo, std::set<TypeInfo>> sTypeInfoMap;
+   auto it = sTypeInfoMap.find(currType);
+   if (it == sTypeInfoMap.end()) {
+     sTypeInfoMap[superTypeInfo].insert(currTypeInfo);
+     return;
+   }
+
+   if (typeid(void) == superType && pCurrClass != nullptr) { //current class is  super class
+     for (auto itc = it->second.begin(); itc != it->second.end(); itc++) {
+       const Class* pChildClass = Class::GetClassByType(itc->get());
+       if (pChildClass != nullptr && pChildClass->mSuper == nullptr) pChildClass->mSuper = pCurrClass;
+     }
+   }
+}
+
 const Field* Class::GetField(const char* szName, bool bSearchSuper /*= true*/) const { 
    auto it = mFieldMap.find(szName);
    if (it == mFieldMap.end()) {

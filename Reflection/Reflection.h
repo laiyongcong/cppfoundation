@@ -584,6 +584,7 @@ class Class {
    static std::pair<EnumClassType, const Class*> FindClassByType(const std::type_info& type);
    static bool IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr = 0, bool bVirtualFunc = false);
    static bool ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& argsList2);
+   static void ResolveRef(const std::type_info& superType, const std::type_info& currType); 
 
    const Field* GetField(const char* szName, bool bSearchSuper = true) const;
    FORCEINLINE const FieldList& GetFields() const { return mFields; }

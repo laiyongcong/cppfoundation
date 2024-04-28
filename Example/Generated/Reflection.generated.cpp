@@ -5,6 +5,7 @@
 #include "TestHeader.h"
 #include "TestHeader2.h"
 #include "RefelectionHelper.h"
+#include "RefJson.h"
 
 using namespace cppfd;
 static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestClass>("TestClass")
@@ -21,15 +22,21 @@ static const ReflectiveClass<TestClass> g_refTestClass = ReflectiveClass<TestCla
 	.RefField(&TestClass::mIntVal,"mIntVal")
 	.RefField(&TestClass::mStrVal,"mStrVal")
 	.RefStaticField(&TestClass::mStaticIntVal,"mStaticIntVal");
+static const ReflectiveClass<JsonArray<TestClass> > g_refTestClassArray = ReflectiveClass<JsonArray<TestClass> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<TestClass> > g_refTestClassMap = ReflectiveClass<JsonMap<TestClass> >((JsonBase*)nullptr);
 
 static const ReflectiveClass<TestSubClass> g_refTestSubClass = ReflectiveClass<TestSubClass>("TestSubClass", (TestClass *)0)
 	.RefConstructor()
 	.RefField(&TestSubClass::mArray,"mArray");
+static const ReflectiveClass<JsonArray<TestSubClass> > g_refTestSubClassArray = ReflectiveClass<JsonArray<TestSubClass> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<TestSubClass> > g_refTestSubClassMap = ReflectiveClass<JsonMap<TestSubClass> >((JsonBase*)nullptr);
 
 static const ReflectiveClass<TestStruct> g_refTestStruct = ReflectiveClass<TestStruct>("TestStruct")
 	.RefField(&TestStruct::mVal,"mVal")
 	.RefField(&TestStruct::StrArray,"StrArray")
 	.RefField(&TestStruct::IntValMap,"IntValMap");
+static const ReflectiveClass<JsonArray<TestStruct> > g_refTestStructArray = ReflectiveClass<JsonArray<TestStruct> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<TestStruct> > g_refTestStructMap = ReflectiveClass<JsonMap<TestStruct> >((JsonBase*)nullptr);
 
 static const ReflectiveClass<TestBaseObj> g_refTestBaseObj = ReflectiveClass<TestBaseObj>("TestBaseObj")
 	.RefField(&TestBaseObj::Content,"Content")
@@ -43,4 +50,6 @@ static const ReflectiveClass<TestBaseObj> g_refTestBaseObj = ReflectiveClass<Tes
 	.RefField(&TestBaseObj::SubObj,"SubObj")
 	.RefField(&TestBaseObj::SubObjArray,"SubObjArray")
 	.RefField(&TestBaseObj::SubObjMap,"SubObjMap");
+static const ReflectiveClass<JsonArray<TestBaseObj> > g_refTestBaseObjArray = ReflectiveClass<JsonArray<TestBaseObj> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<TestBaseObj> > g_refTestBaseObjMap = ReflectiveClass<JsonMap<TestBaseObj> >((JsonBase*)nullptr);
 

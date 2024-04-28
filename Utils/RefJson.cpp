@@ -4,6 +4,30 @@
 namespace cppfd {
 
 static const ReflectiveClass<JsonBase> gRefJsonBase = ReflectiveClass<JsonBase>("JsonBase");
+static const ReflectiveClass<JsonArray<int8_t> > gRefInt8Arr = ReflectiveClass<JsonArray<int8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<uint8_t> > gRefUInt8Arr = ReflectiveClass<JsonArray<uint8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<int16_t> > gRefInt16Arr = ReflectiveClass<JsonArray<int16_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<uint16_t> > gRefUInt16Arr = ReflectiveClass<JsonArray<uint16_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<int32_t> > gRefInt32Arr = ReflectiveClass<JsonArray<int32_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<uint32_t> > gRefUInt32Arr = ReflectiveClass<JsonArray<uint32_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<int64_t> > gRefInt64Arr = ReflectiveClass<JsonArray<int64_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<uint64_t> > gRefUInt64Arr = ReflectiveClass<JsonArray<uint64_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<bool> > gRefBoolArr = ReflectiveClass<JsonArray<bool> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<float> > gRefFloatArr = ReflectiveClass<JsonArray<float> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<double> > gRefDoubleArr = ReflectiveClass<JsonArray<double> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<String> > gRefStringArr = ReflectiveClass<JsonArray<String> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<int8_t> > gRefInt8Map = ReflectiveClass<JsonMap<int8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<uint8_t> > gRefUInt8Map = ReflectiveClass<JsonMap<uint8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<int16_t> > gRefInt16Map = ReflectiveClass<JsonMap<int16_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<uint16_t> > gRefUInt16Map = ReflectiveClass<JsonMap<uint16_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<int32_t> > gRefInt32Map = ReflectiveClass<JsonMap<int32_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<uint32_t> > gRefUInt32Map = ReflectiveClass<JsonMap<uint32_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<int64_t> > gRefInt64Map = ReflectiveClass<JsonMap<int64_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<uint64_t> > gRefUInt64Map = ReflectiveClass<JsonMap<uint64_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<bool> > gRefBoolMap = ReflectiveClass<JsonMap<bool> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<float> > gRefFloatMap = ReflectiveClass<JsonMap<float> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<double> > gRefDoubleMap = ReflectiveClass<JsonMap<double> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<String> > gRefStringMap = ReflectiveClass<JsonMap<String> >((JsonBase*)nullptr);
 
 typedef bool (*JsonTravelCallBackFunc)(void* pData, const Field& f, const char* szContent, int32_t nContentLen);
 struct JsonTraveler {
@@ -20,10 +44,10 @@ inline bool IsNullContent(const char* szContent, uint32_t uLen) {
   return false;
 }
 
-int MyTravelJsonBuff(const char** szJson, JsonTraveler traveler);
-int MyTravelLeaf(char top, const char** szJson, JsonTraveler traveler);
+int MyTravelJsonBuff(const char** szJson, JsonTraveler& traveler);
+int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler);
 
-int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
+int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
   const char* szBegin = NULL;
   int32_t nLen = 0;
   signed char tag;
@@ -83,6 +107,8 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
       traveler.mIdx++;
     } else if (tag == FASTERJSON_TOKEN_LBB) {
       const Class* pOldClass = traveler.mClass;
+      JsonBase* pJsonBase = nullptr;
+      void* pNewItem = nullptr;
       if (pField) {
         const Class* pClass = Class::GetClassByType(pField->GetElementType());
         if (pClass == nullptr) throw JsonParseError("field:" + String(pField->GetName()) + " unknow element class:" + Demangle(pField->GetElementType().name()));
@@ -90,11 +116,12 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
           if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetType() == EJsonArray)  // Vector
           {
             if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
-            JsonBase* pVecClass = (JsonBase*)pTempData;
-            if (pVecClass) {
-              traveler.mCurrentData = pVecClass->AddAndGetItem();
-              traveler.mClass = Class::GetClassByType(pVecClass->GetItemType());
-              if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pVecClass->GetItemType().name()) + " in field:" + pField->GetName());
+            pJsonBase = (JsonBase*)pTempData;
+            if (pJsonBase) {
+              pNewItem = pJsonBase->NewItem();
+              traveler.mCurrentData = pNewItem;
+              traveler.mClass = Class::GetClassByType(pJsonBase->GetItemType());
+              if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()) + " in field:" + pField->GetName());
             }
           } else {
             if (traveler.mIdx < nCount) {
@@ -112,16 +139,18 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
         const Class* pClass = traveler.mClass;
         if (pTempData != nullptr && pClass != nullptr && pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetType() == EJsonArray)  // Vector
         {
-          JsonBase* pVecClass = (JsonBase*)pTempData;
-          if (pVecClass) {
-            traveler.mCurrentData = pVecClass->AddAndGetItem();
-            traveler.mClass = Class::GetClassByType(pVecClass->GetItemType());
-            if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pVecClass->GetItemType().name()));
+          pJsonBase = (JsonBase*)pTempData;
+          if (pJsonBase) {
+            pNewItem = pJsonBase->NewItem();
+            traveler.mCurrentData = pNewItem;
+            traveler.mClass = Class::GetClassByType(pJsonBase->GetItemType());
+            if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()));
           }
         }
       }
 
       nRet = MyTravelLeaf('{', szJson, traveler);
+      if (pNewItem && pJsonBase) pJsonBase->AddItem(pNewItem); 
       traveler.mIdx++;
       traveler.mClass = pOldClass;
 
@@ -159,7 +188,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler traveler){
   return 0;
 }
 
-int MyTravelLeaf(char top, const char** szJson, JsonTraveler traveler) {
+int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
   char szTemp[256] = {0};
   const char* szBegin = NULL;
   int nLen = 0;
@@ -243,8 +272,13 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler traveler) {
       }
     } else if (tag == FASTERJSON_TOKEN_LBB) {
       const Class* pOldClass = traveler.mClass;
+      JsonBase* pJsonBase = nullptr;
+      void* pNewItem = nullptr;
+
       if (pOldClass && pMapClass->IsSuperOf(*pOldClass) && pData != nullptr && ((JsonBase*)pData)->GetType() == EJsonMap) {
-        traveler.mCurrentData = ((JsonBase*)pData)->AddAndGetItem(szTemp);
+        pJsonBase = (JsonBase*)pData;
+        pNewItem = pJsonBase->NewItem();
+        traveler.mCurrentData = pNewItem;
         traveler.mClass = Class::GetClassByType(((JsonBase*)pData)->GetItemType());
         if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(((JsonBase*)pData)->GetItemType().name()));
       } else {
@@ -257,6 +291,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler traveler) {
       }
       nRet = MyTravelLeaf('{', szJson, traveler);
       traveler.mClass = pOldClass;
+      if (pNewItem && pJsonBase) pJsonBase->AddItem(pNewItem, szTemp);
 
       if (nRet) return nRet;
 
@@ -297,7 +332,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler traveler) {
   return 0;
 }
 
-int MyTravelJsonBuff(const char** szJson, JsonTraveler traveler) {
+int MyTravelJsonBuff(const char** szJson, JsonTraveler& traveler) {
   const char* szBegin = NULL;
   uint32_t nLen = 0;
   signed char tag;

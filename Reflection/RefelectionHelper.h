@@ -13,22 +13,26 @@ class ReflectiveClass {
   public:
    ReflectiveClass() {
      InitClass(Demangle(typeid(T).name()).c_str(), nullptr, &NullSuperCast, &NullSuperCastConst);
+     Class::ResolveRef(typeid(void), typeid(T));
    }
 
    ReflectiveClass(const char* szName) {
      InitClass(szName, nullptr, &NullSuperCast, &NullSuperCastConst);
+     Class::ResolveRef(typeid(void), typeid(T));
    }
 
    template<typename SuperT>
    ReflectiveClass(const SuperT*) {
      const Class* pClass = Class::GetClassByType(typeid(SuperT));
-    InitClass(Demangle(typeid(T).name()).c_str(), pClass, &SuperCast<SuperT>, &SuperCastConst<SuperT>);
+     InitClass(Demangle(typeid(T).name()).c_str(), pClass, &SuperCast<SuperT>, &SuperCastConst<SuperT>);
+     Class::ResolveRef(typeid(SuperT), typeid(T));
    }
 
    template <typename SuperT>
    ReflectiveClass(const char* szName, const SuperT*) {
      const Class* pClass = Class::GetClassByType(typeid(SuperT));
      InitClass(szName, pClass, &SuperCast<SuperT>, &SuperCastConst<SuperT>);
+     Class::ResolveRef(typeid(SuperT), typeid(T));
    }
 
    template<typename F>
