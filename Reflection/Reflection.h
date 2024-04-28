@@ -579,13 +579,12 @@ class Class {
    virtual ~Class();
 
    FORCEINLINE int GenFieldIdx() const { return mFieldIdx++; }
-   static const Class* GetClassByName(const String& strName);
-   static const Class* GetClassByType(const std::type_info& type);
+   static const Class* GetClass(const String& strName);
+   static const Class* GetClass(const std::type_info& type);
    template<typename T>
    static const Class* GetClass() {
-    return GetClassByType(typeid(T));
+    return GetClass(typeid(T));
    }
-   static const Class* GetClass(const String& strName) { return GetClassByName(strName);}
    static std::pair<EnumClassType, const Class*> FindClassByType(const std::type_info& type);
    static bool IsCastable(const std::type_info& from_cls, const std::type_info& to_cls, void* objptr = 0, bool bVirtualFunc = false);
    static bool ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& argsList2);
@@ -724,7 +723,7 @@ void Field::GetPtr(const Object* object, Value*& result) const {
 template <typename Object, typename Value>
 void Field::GetByIdx(const Object* pObj, Value& result, int idx/* = 0*/) const {
    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
-   const Class* pClass = Class::GetClassByType(typeid(Object));
+   const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
    if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");
@@ -734,7 +733,7 @@ void Field::GetByIdx(const Object* pObj, Value& result, int idx/* = 0*/) const {
 template <typename Object, typename Value>
 void Field::GetPtrByIdx(const Object* pObj, Value*& result, int idx /*= 0*/) const {
    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
-   const Class* pClass = Class::GetClassByType(typeid(Object));
+   const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
    if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");
@@ -749,7 +748,7 @@ void Field::Set(Object* object, const Value& value) const {
 template <typename Object, typename Value>
 void Field::SetByIdx(Object* object, const Value& value, int idx/* = 0*/) const {
    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
-   const Class* pClass = Class::GetClassByType(typeid(Object));
+   const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid value type");
    if (idx < 0 || idx > mElementCount) throw IllegalAccessError("invalid idx");

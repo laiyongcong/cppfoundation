@@ -145,14 +145,14 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
    mConstructors.clear();
  }
 
- const Class* Class::GetClassByName(const String& strName) { 
+ const Class* Class::GetClass(const String& strName) { 
    const ClassMap& classMap = GetClassMap();
    auto it = classMap.find(strName);
    if (it == classMap.end()) return nullptr;
    return it->second;
 }
 
-const Class* Class::GetClassByType(const std::type_info& type) {
+const Class* Class::GetClass(const std::type_info& type) {
    for (int t = ClassNormalType; t < ClassTypeNum; t++) {
      const TypeInfoMap& typeMap = GetTypeInfoMap((EnumClassType)t);
      auto it = typeMap.find(TypeInfo(type));
@@ -237,8 +237,8 @@ bool Class::ArgsSame(const ArgumentTypeList& argsList1, const ArgumentTypeList& 
 void Class::ResolveRef(const std::type_info& superType, const std::type_info& currType) {
    TypeInfo superTypeInfo(superType);
    TypeInfo currTypeInfo(currType);
-   const Class* pSuperClass = Class::GetClassByType(superType);
-   const Class* pCurrClass = Class::GetClassByType(currType);
+   const Class* pSuperClass = Class::GetClass(superType);
+   const Class* pCurrClass = Class::GetClass(currType);
    if (pCurrClass != nullptr && pSuperClass != nullptr && pCurrClass->mSuper == nullptr) {
      pCurrClass->mSuper = pSuperClass;
      return;
@@ -252,7 +252,7 @@ void Class::ResolveRef(const std::type_info& superType, const std::type_info& cu
 
    if (typeid(void) == superType && pCurrClass != nullptr) { //current class is  super class
      for (auto itc = it->second.begin(); itc != it->second.end(); itc++) {
-       const Class* pChildClass = Class::GetClassByType(itc->get());
+       const Class* pChildClass = Class::GetClass(itc->get());
        if (pChildClass != nullptr && pChildClass->mSuper == nullptr) pChildClass->mSuper = pCurrClass;
      }
    }

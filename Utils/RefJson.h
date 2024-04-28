@@ -35,7 +35,7 @@ class JsonBase {
   template<typename T>
   static String ToJsonString(T* pObj) {
     if (pObj == nullptr) return "";
-    const Class* pClass = Class::GetClassByType(typeid(T));
+    const Class* pClass = Class::GetClass(typeid(T));
     if (pClass == nullptr) throw JsonWriteError("Unknow Type:" + Demangle(typeid(T).name()));
     return ToJsonString(pObj, *pClass);
   }
@@ -43,7 +43,7 @@ class JsonBase {
   template<typename T>
   static bool FromJsonString(T* pObj, const String& strJson) {
     if (pObj == nullptr) return false;
-    const Class* pClass = Class::GetClassByType(typeid(T));
+    const Class* pClass = Class::GetClass(typeid(T));
     if (pClass == nullptr) throw JsonParseError("Unknow Type:" + Demangle(typeid(T).name()));
     return FromJsonString(pObj, *pClass, strJson);
   }

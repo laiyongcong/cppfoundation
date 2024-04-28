@@ -67,7 +67,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
     nCount = pField->GetElementCount();
     nElementSize = (uint32_t)pField->GetSize() / nCount;
   }
-  const static Class* pVectorClass = Class::GetClassByType(typeid(JsonBase));
+  const static Class* pVectorClass = Class::GetClass(typeid(JsonBase));
   void* pTempData = traveler.mCurrentData;
 
   traveler.mIdx = 0;
@@ -81,7 +81,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
 
       if (IsNullContent(szContent, nContentLen) == false) {
         if (pField) {
-          const Class* pClass = Class::GetClassByType(pField->GetElementType());
+          const Class* pClass = Class::GetClass(pField->GetElementType());
           if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetType() == EJsonArray) {
             if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
             JsonBase* pVector = (JsonBase*)pTempData;
@@ -110,7 +110,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
       JsonBase* pJsonBase = nullptr;
       void* pNewItem = nullptr;
       if (pField) {
-        const Class* pClass = Class::GetClassByType(pField->GetElementType());
+        const Class* pClass = Class::GetClass(pField->GetElementType());
         if (pClass == nullptr) throw JsonParseError("field:" + String(pField->GetName()) + " unknow element class:" + Demangle(pField->GetElementType().name()));
         if (pTempData != NULL) {
           if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetType() == EJsonArray)  // Vector
@@ -120,7 +120,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
             if (pJsonBase) {
               pNewItem = pJsonBase->NewItem();
               traveler.mCurrentData = pNewItem;
-              traveler.mClass = Class::GetClassByType(pJsonBase->GetItemType());
+              traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
               if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()) + " in field:" + pField->GetName());
             }
           } else {
@@ -143,7 +143,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
           if (pJsonBase) {
             pNewItem = pJsonBase->NewItem();
             traveler.mCurrentData = pNewItem;
-            traveler.mClass = Class::GetClassByType(pJsonBase->GetItemType());
+            traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
             if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()));
           }
         }
@@ -159,7 +159,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
       const Class* pOldClass = traveler.mClass;
       traveler.mClass = NULL;
       if (pField) {
-        const Class* pTempClass = Class::GetClassByType(pField->GetElementType());
+        const Class* pTempClass = Class::GetClass(pField->GetElementType());
         if (pTempClass && pTempData) {
           traveler.mClass = pTempClass;
           traveler.mCurrentData = (char*)pTempData + pField->GetOffset();
@@ -206,7 +206,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
 
   void* pData = traveler.mCurrentData;
 
-  const static Class* pMapClass = Class::GetClassByType(typeid(JsonBase));
+  const static Class* pMapClass = Class::GetClass(typeid(JsonBase));
 
   firstNode = 1;
   while (1) {
@@ -279,12 +279,12 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
         pJsonBase = (JsonBase*)pData;
         pNewItem = pJsonBase->NewItem();
         traveler.mCurrentData = pNewItem;
-        traveler.mClass = Class::GetClassByType(((JsonBase*)pData)->GetItemType());
+        traveler.mClass = Class::GetClass(((JsonBase*)pData)->GetItemType());
         if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(((JsonBase*)pData)->GetItemType().name()));
       } else {
         traveler.mClass = NULL;
         if (pData && traveler.mField) {
-          traveler.mClass = Class::GetClassByType(traveler.mField->GetType());
+          traveler.mClass = Class::GetClass(traveler.mField->GetType());
           if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(traveler.mField->GetType().name()) + " field:" + traveler.mField->GetName());
           traveler.mCurrentData = (char*)pData + traveler.mField->GetOffset();
         }
@@ -302,7 +302,7 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
       const Class* pOldClass = traveler.mClass;
       traveler.mClass = NULL;
       if (pData && traveler.mField) {
-        const Class* pTempClass = Class::GetClassByType(traveler.mField->GetElementType());
+        const Class* pTempClass = Class::GetClass(traveler.mField->GetElementType());
         if (pTempClass) {
           traveler.mClass = pTempClass;
         }
@@ -442,7 +442,7 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
 }
 
 String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
-  const static Class* pJsonClass = Class::GetClassByType(typeid(JsonBase));
+  const static Class* pJsonClass = Class::GetClass(typeid(JsonBase));
 
   char tmpBuff[32] = {0};
   if (tInfo == typeid(int8_t)) {
@@ -487,7 +487,7 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
       safe_printf(tmpBuff, sizeof(tmpBuff), "false");
     }
   } else {
-    const Class* pClass = Class::GetClassByType(tInfo);
+    const Class* pClass = Class::GetClass(tInfo);
     if (pClass == nullptr) throw JsonWriteError("Unknow Type:" + Demangle(tInfo.name()));
     if (pJsonClass->IsSuperOf(*pClass)) {
       JsonBase* pJson = (JsonBase*)pData;
@@ -500,7 +500,7 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
 }
 
 String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) { 
-  const static Class* pJsonClass = Class::GetClassByType(typeid(JsonBase));
+  const static Class* pJsonClass = Class::GetClass(typeid(JsonBase));
   if (pJsonClass->IsSuperOf(refClass)) return ((JsonBase*)pAddr)->ToJsonString();
 
   String strRes = "{";
@@ -513,7 +513,7 @@ String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) {
       const Field* pField = fields[i];
       const std::type_info& elementType = pField->GetElementType();
       int nElementCount = pField->GetElementCount();
-      const Class* pFieldClass = Class::GetClassByType(elementType);
+      const Class* pFieldClass = Class::GetClass(elementType);
 
       JsonBase* pJson = nullptr;
       if (pFieldClass && pJsonClass->IsSuperOf(*pFieldClass) && ((JsonBase*)((char*)pAddr + pField->GetOffset()))->GetType() != EJsonObj) {
