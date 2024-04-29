@@ -117,4 +117,82 @@ class TQueue : NonCopyable {
 
   std::atomic_uint64_t mSize;
 };
+
+template <typename T>
+class T1V1Queue : NonCopyable {
+ public:
+  using ElementType = T;
+  T1V1Queue() : mSize(0) {
+    mHead = mTail = new TNode;
+  }
+  ~T1V1Queue() {
+    while (mTail != nullptr) {
+      TNode* pNode = mTail;
+      mTail = pNode->NextNode;
+      delete pNode;
+    }
+  }
+  bool Dequeue(ElementType& OutItem) {
+    TNode* pPop = mTail->NextNode;
+    if (pPop == nullptr) return false;
+    OutItem = std::move(pPop->Item);
+    TNode* pOldTail = mTail;
+    mTail = pPop;
+    mTail->Item = ElementType();
+    delete pOldTail;
+    mSize--;
+    return true;
+  }
+
+  bool Enqueue(const ElementType& InItem) {
+    TNode* pNewNode = new TNode(InItem);
+    if (pNewNode == nullptr) return false;
+    TNode* OldHead = mHead;
+    mHead = pNewNode;
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+    OldHead->NextNode = pNewNode;
+    mSize++;
+    return true;
+  }
+
+  FORCEINLINE bool IsEmpty() const { return mSize == 0; }
+
+  ElementType* Peek() {
+    if (mTail->NextNode == nullptr) return nullptr;
+    return &(mTail->NextNode->Item);
+  }
+
+  FORCEINLINE const ElementType* Peek() const { return const_cast<TQueue*>(this)->Peek(); }
+
+  bool Pop() {
+    TNode* pPop = mTail->NextNode;
+    if (pPop == nullptr) return false;
+    TNode* pOldTail = mTail;
+    mTail = pPop;
+    mTail->Item = ElementType();
+    delete pOldTail;
+    mSize--;
+    return true;
+  }
+
+  void Empty() {
+    while (Pop());
+  }
+
+  uint64_t GetSize() const { return mSize; }
+
+ private:
+  struct TNode {
+    TNode* volatile NextNode;
+    ElementType Item;
+    TNode() : NextNode(nullptr) {}
+    explicit TNode(const ElementType& InItem) : NextNode(nullptr), Item(InItem) {}
+    explicit TNode(ElementType& InItem) : NextNode(nullptr), Item(std::move(InItem)) {}
+  };
+
+  alignas(16) TNode* volatile mHead;
+  TNode* mTail;
+
+  std::atomic_uint64_t mSize;
+};
 }
