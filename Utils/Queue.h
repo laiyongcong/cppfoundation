@@ -87,7 +87,7 @@ class TQueue : NonCopyable {
       currTail = nextVerTail;
       nextTail.mNode = currTail.mNode->NextNode;
     } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextTail));
-    delete currTail->mNode;
+    delete currTail.mNode;
     mSize--;
     return true;
   }
