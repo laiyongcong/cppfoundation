@@ -162,7 +162,7 @@ class T1V1Queue : NonCopyable {
     return &(mTail->NextNode->Item);
   }
 
-  FORCEINLINE const ElementType* Peek() const { return const_cast<TQueue*>(this)->Peek(); }
+  FORCEINLINE const ElementType* Peek() const { return const_cast<T1V1Queue*>(this)->Peek(); }
 
   bool Pop() {
     TNode* pPop = mTail->NextNode;

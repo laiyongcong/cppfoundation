@@ -37,6 +37,11 @@ void ThreadEvent::Post() {
   mCond.notify_one();
 }
 
+Thread* ThreadKeeper::Keep() {
+  mRWLocker.lock_shared();
+  return mThread;
+}
+
  Thread::Thread() : mRunningFlag(0) { 
   mKeeper = std::make_shared<ThreadKeeper>();
   mKeeper->mThread = this;

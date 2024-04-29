@@ -3,6 +3,8 @@
 #include "Queue.h"
 #include "ThreadData.h"
 #include <shared_mutex>
+#include<condition_variable>
+#include<thread>
 
 namespace cppfd {
 class ThreadEvent {
@@ -16,15 +18,12 @@ class ThreadEvent {
   std::mutex mMutex;
   bool mSignal;
 };
-
+class Thread;
 class ThreadKeeper {
   friend class Thread;
  public:
   ~ThreadKeeper() { mRWLocker.unlock_shared(); }
-  FORCEINLINE Thread* Keep() {
-    mRWLocker.lock_shared();
-    return mThread;
-  }
+  Thread* Keep();
   FORCEINLINE void Release() { mRWLocker.unlock_shared(); }
  private:
   Thread* mThread;
