@@ -2,9 +2,71 @@
 #include "TestHeader.h"
 #include "TestHeader2.h"
 #include "RefJson.h"
+#include "Thread.h"
+
+using namespace cppfd;
+
+
+
+void ThreadTest() { 
+  Thread p1, p2, p3,c1,c2,c3; 
+  p1.Start("p1");
+  p2.Start("p2");
+  p3.Start("p3");
+  c1.Start("c1");
+  c2.Start("c2");
+  c3.Start("c3");
+
+  std::atomic_int gVal = 0;
+
+  p1.Post([&]() {
+    int i = 0;
+    while ( i < 1000){
+      c1.Post([&](){ gVal++;});
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });
+      //Thread::Milisleep(1);
+      i++;
+    }
+  });
+
+  p2.Post([&]() {
+    int i = 0;
+    while (i < 1000) {
+      c1.Post([&]() { gVal++; });
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });
+      //Thread::Milisleep(1);
+      i++;
+    }
+  });
+
+  p3.Post([&]() {
+    int i = 0;
+    while (i < 1000) {
+      c1.Post([&]() { gVal++; });
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });
+      //Thread::Milisleep(1);
+      i++;
+    }
+  });
+
+  while (gVal < 9000) {
+    Thread::Milisleep(100);
+  }
+  p1.Stop();
+  p2.Stop();
+  p3.Stop();
+  c1.Stop();
+  c2.Stop();
+  c3.Stop();
+  std::cout << "thread test ok!" << std::endl;
+}
 
 void main(int argc, char** argv) {
-  using namespace cppfd;
+  ThreadTest();
+
   const Class* pTestClass = Class::GetClass<TestClass>();
   const Class* pTestSubClass = Class::GetClass<TestSubClass>();
   if (pTestClass == nullptr || pTestSubClass == nullptr) {

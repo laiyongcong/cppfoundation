@@ -1,8 +1,5 @@
 #include "Utils.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif  // !WIN32_LEAN_AND_MEAN
 #  include <windows.h>
 #  pragma warning(disable : 4091)
 #  include <DbgHelp.h>
@@ -10,10 +7,19 @@
 #  include <io.h>
 #  pragma comment(lib, "Dbghelp.lib")
 #  pragma warning(default : 4091)
+#  include <MMSystem.h>
+#  include <WinSock2.h>
+#  include <process.h>
+#  pragma comment(lib, "winmm")
 #else
 #  include <execinfo.h>
 #  include <fcntl.h>
 #  include <unistd.h>
+#  include <sys/select.h>
+#  include<sys/time.h>
+#  include <netdb.h>
+#  include <arpa/inet.h>
+#  include <errno.h>
 #endif
 
 namespace cppfd {
@@ -155,7 +161,7 @@ void Utils::StringUnExcape(const String& strInput, String& strRes) {
   }
  }
 
-String Utils::Double3String(double dNumber, uint32_t uDigit) {
+String Utils::Double2String(double dNumber, uint32_t uDigit) {
   if (uDigit > 20) uDigit = 20;
 
   int64_t nIntPart;
@@ -189,4 +195,20 @@ String Utils::Double3String(double dNumber, uint32_t uDigit) {
   return strRes;
  }
 
-}  // namespace cppfd
+int Utils::GetTimeOfDay(struct timeval* tp, void* tzp) {
+#if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
+  int64_t now = 0;
+  if (tzp != 0) {
+    errno = EINVAL;
+    return -1;
+  }
+  GetSystemTimeAsFileTime((LPFILETIME)&now);
+  tp->tv_sec = (long)(now / 10000000 - 11644473600LL);
+  tp->tv_usec = (now / 10) % 1000000;
+  return 0;
+#else
+  return gettimeofday(tp, (struct timezone*)tzp);
+#endif
+}
+
+ }  // namespace cppfd

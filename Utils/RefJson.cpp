@@ -478,7 +478,7 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
     safe_printf(tmpBuff, sizeof(tmpBuff), "%f", fVal);
   } else if (tInfo == typeid(double)) {
     double dVal = *((double*)pData);
-    return Utils::Double3String(dVal, 15);
+    return Utils::Double2String(dVal, 15);
   } else if (tInfo == typeid(bool)) {
     bool bVal = *((bool*)pData);
     if (bVal) {

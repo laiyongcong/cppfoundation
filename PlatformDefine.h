@@ -61,7 +61,10 @@
 #endif
 
 #if defined(__WIN32__) || defined(_WIN32)
-#  define CPPFD_PLATFORM CPPFD_PLATFORM_WIN32
+#  define CPPFD_PLATFORM  CPPFD_PLATFORM_WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif  // !WIN32_LEAN_AND_MEAN
 #elif defined(__APPLE_CC__)
 // Device                                                     Simulator
 // Both requiring OS version 4.0 or greater
@@ -80,4 +83,11 @@
 #  define CPPFD_ARCH_TYPE CPPFD_ARCHITECTURE_64
 #else
 #  define CPPFD_ARCH_TYPE CPPFD_ARCHITECTURE_32
+#endif
+
+
+#if defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC)
+#  define CPPFD_CPU_ARM_FAMILY (1)
+#elif defined(_M_IX86) || defined(_M_X64)
+#  define CPPFD_CPU_X86_FAMILY (1)
 #endif

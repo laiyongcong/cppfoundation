@@ -37,6 +37,7 @@
 #include <stdexcept>
 #include <cstddef>
 #include <atomic>
+#include <mutex>
 
 extern "C" {
 #include <sys/stat.h>
