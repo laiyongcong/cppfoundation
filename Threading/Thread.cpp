@@ -142,12 +142,12 @@ Thread* ThreadKeeper::Keep() {
   return mThread;
 }
 
- Thread::Thread() : mRunningFlag(0) { 
+ Thread::Thread() : mRunningFlag(0), mPool(nullptr) { 
   mKeeper = std::make_shared<ThreadKeeper>();
   mKeeper->mThread = this;
  }
 
- Thread::~Thread() {}
+ Thread::~Thread() { Stop(); }
 
 void Thread::Start(const String& strName) {
   if (++mRunningFlag > 1) {
@@ -173,6 +173,7 @@ void Thread::Stop() {
     --mRunningFlag;
     --mRunningFlag;
   } else {
+    --mRunningFlag;
     return;
   }
   mEvent.Post();
@@ -193,13 +194,27 @@ void Thread::Milisleep(uint32_t uMiliSec) {
   //std::this_thread::sleep_for(std::chrono::milliseconds(uMiliSec));
  }
 
- void Thread::RunTask() {
-    while (true) {
-      std::function<void()> func;
-      if (!mTaskQueue.Dequeue(func)) break;
-      func();
+ int32_t Thread::RunTask() {
+  int32_t nCount = 0;
+  while (true) {
+    std::function<void()> func;
+    if (!mTaskQueue.Dequeue(func)) break;
+    func();
+    nCount++;
+  }
+  return nCount;
+ }
+
+ void Thread::Post(const std::function<void()>& func) {
+    if (!func) return;
+    if (mPool == nullptr) {
+      mTaskQueue.Enqueue(func);
+      mEvent.Post();
+      return;
     }
-}
+    mPool->mTaskQueue.Enqueue(func);
+    mPool->mQueueReady.notify_one();
+ }
 
 void Thread::Async(const std::function<void()>& func, const std::function<void()>& cbFunc) {
     std::shared_ptr<ThreadKeeper> pKeeper = GetCurrentThreadKeeper();
@@ -220,10 +235,23 @@ void Thread::Routine(Thread* pThread) noexcept {
   if (pThread == nullptr) return;
   sThreadData.Set(pThread);
   srand((uint32_t)time(nullptr));
-  while (pThread->mRunningFlag > 0) {
-    pThread->RunTask();
-    pThread->mEvent.WaitInfinite();
+
+  if (pThread->mPool == nullptr){
+      while (pThread->mRunningFlag > 0) {
+        pThread->RunTask();
+        pThread->mEvent.WaitInfinite();
+      }
+  } else {
+      while (pThread->mPool->mRunningFlag > 0) {
+        {
+          std::unique_lock<std::mutex> lck(pThread->mPool->mQueueLock);
+          pThread->mPool->mQueueReady.wait(lck, [=]() { return pThread->mPool->mRunningFlag <= 0 || !pThread->mPool->mTaskQueue.IsEmpty() || pThread->mPool->mBroadCastNum > 0; });
+        }
+        pThread->mPool->RunTask();
+        pThread->mPool->mBroadCastNum -= pThread->RunTask();
+      }
   }
+  
   pThread->mKeeper->mRWLocker.WriteLock();
   pThread->mKeeper->mThread = nullptr;
   pThread->mKeeper->mRWLocker.UnLock();
@@ -231,4 +259,76 @@ void Thread::Routine(Thread* pThread) noexcept {
 
 ThreadData Thread::sThreadData(nullptr);
 
-}
+ ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr) {
+  if (mThreadNum <= 0) mThreadNum = 1;
+  mThreads = new Thread[mThreadNum];
+  for (int32_t i = 0; i < mThreadNum; i++) {
+    mThreads[i].mPool = this;
+  }
+ }
+
+ ThreadPool::~ThreadPool() { 
+     SAFE_DELETE_ARRAY(mThreads);
+ }
+
+void ThreadPool::Start(const String& strName) {
+  if (++mRunningFlag > 1) {
+    --mRunningFlag;
+    return;
+  }
+  for (int32_t i = 0; i < mThreadNum; i++) {
+    mThreads[i].Start(strName + std::to_string(i + 1));
+  }
+  mName = strName;
+ }
+
+void ThreadPool::Stop() {
+  if (++mRunningFlag > 1) {
+    --mRunningFlag;
+    --mRunningFlag;
+  } else {
+    --mRunningFlag;
+    return;
+  }
+  mQueueReady.notify_all();
+  for (int32_t i = 0; i < mThreadNum; i++) {
+    mThreads[i].Stop();
+  }
+ }
+
+void ThreadPool::Async(const std::function<void()>& func, const std::function<void()>& cbFunc) {
+  Thread* pThread = Thread::GetCurrentThread();
+  if (pThread == nullptr || pThread->mPool == this) {
+    Invoke(func);
+    cbFunc();
+    return;
+  }
+  std::shared_ptr<ThreadKeeper> pKeeper = pThread->GetCurrentThreadKeeper();
+  Post([=]() {
+    func();
+    Thread* pCallThread = pKeeper->Keep();
+    if (pCallThread != nullptr) pCallThread->Post(cbFunc);
+    pKeeper->Release();
+  });
+ }
+
+void ThreadPool::BroadCast(const std::function<void()>& func) {
+  for (int32_t i = 0; i < mThreadNum; i++) {
+    mBroadCastNum++;
+    mThreads[i].mTaskQueue.Enqueue(func);
+  }
+  mQueueReady.notify_all();
+ }
+
+ int32_t ThreadPool::RunTask() {
+  int32_t nCount = 0;
+  while (true) {
+    std::function<void()> func;
+    if (!mTaskQueue.Dequeue(func)) break;
+    func();
+    nCount++;
+  }
+  return nCount;
+ }
+
+}  // namespace cppfd

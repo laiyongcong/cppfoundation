@@ -93,3 +93,19 @@
 #elif defined(_M_IX86) || defined(_M_X64)
 #  define CPPFD_CPU_X86_FAMILY (1)
 #endif
+
+#ifndef SAFE_DELETE
+#  define SAFE_DELETE(x) \
+    if ((x) != NULL) {   \
+      delete x;          \
+      (x) = NULL;        \
+    }
+#endif
+
+#ifndef SAFE_DELETE_ARRAY
+#  define SAFE_DELETE_ARRAY(x) \
+    if ((x) != NULL) {         \
+      delete[] x;              \
+      (x) = NULL;              \
+    }
+#endif

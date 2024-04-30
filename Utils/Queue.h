@@ -1,18 +1,36 @@
 #pragma once
 #include "Utils.h"
+#include <thread>
+#include<condition_variable>
+#include <mutex>
 
 namespace cppfd {
+
+
 template<typename T>
 class TQueue : NonCopyable {
  public:
   using ElementType = T;
-  TQueue() : mSize(0) { 
-    TNodeInfo tmpNode;
-    tmpNode.mNode = new TNode;
-    mHead = mTail = tmpNode;
+  TQueue() : mSize(0), mValid(true) { 
+    mHead = mTail = mDelTail = new TNode;
+    mDelTail->BeDeleted = true;
+    mDelThread = std::thread([=]() {
+      while (mValid) {
+        std::unique_lock<std::mutex> lck(mDelMutex);
+        mDelReady.wait(lck, [=]() { return !mValid.load() && mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted.load(); });
+        while (mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted) {
+          TNode* pDel = mDelTail;
+          mDelTail = mDelTail->NextNode;
+          delete pDel;
+        }
+      }
+    });
   }
   ~TQueue() {
-    TNode* pTail = mTail.load().mNode;
+    mValid = false;
+    mDelReady.notify_one();
+    mDelThread.join();
+    TNode* pTail = mTail.load();
     while (pTail != nullptr) {
       TNode* pNode = pTail;
       pTail = pNode->NextNode;
@@ -20,44 +38,29 @@ class TQueue : NonCopyable {
     }
   }
   bool Dequeue(ElementType& OutItem) { 
-    TNodeInfo currTail, nextVerTail, nextTail;
-    uint32_t uCurrentVersion = mVersion++;
-    do {
-      do {
-        currTail = mTail;
-        if (currTail.mNode->NextNode == nullptr) return false;
-        nextVerTail = currTail;
-        nextVerTail.mVersion = uCurrentVersion;
-      } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextVerTail));
-      
-      currTail = nextVerTail;
-      nextTail.mNode = currTail.mNode->NextNode;
-      TNode* pPop = currTail.mNode->NextNode;
-      OutItem = pPop->Item;
-    } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextTail));
-
-    delete currTail.mNode;
+    TNode* pTail = mTail;
+    do 
+    {
+      if (pTail->NextNode == nullptr) return false;
+    } while (!std::atomic_compare_exchange_weak(&mTail, &pTail, pTail->NextNode));
+    
+    TNode* pPop = pTail->NextNode;
+    OutItem = std::move(pPop->Item);
+    pPop->BeDeleted = true;
+    pPop->Item = ElementType();
     mSize--;
+    mDelReady.notify_one();
     return true;
   }
 
   bool Enqueue(const ElementType& InItem) { 
     TNode* pNewNode = new TNode(InItem);
     if (pNewNode == nullptr) return false;
-    TNodeInfo currHead, nextVerHead, nextHead;
-    nextHead.mNode = pNewNode;
-    uint32_t uCurrentVersion = mVersion++;
-    do {
-      do 
-      {
-        currHead = mHead;
-        nextVerHead = currHead;
-        nextVerHead.mVersion = uCurrentVersion;
-      } while (!std::atomic_compare_exchange_weak(&mHead, &currHead, nextVerHead));
-      currHead = nextVerHead;
-    } while (!std::atomic_compare_exchange_weak(&mHead, &currHead, nextHead));
+
+    TNode* pCurrHead = mHead;
+    while (!std::atomic_compare_exchange_weak(&mHead, &pCurrHead, pNewNode));
     std::atomic_thread_fence(std::memory_order_seq_cst);
-    currHead.mNode->NextNode = nextHead.mNode;
+    pCurrHead->NextNode = pNewNode;
     mSize++;
     return true;
   }
@@ -66,29 +69,23 @@ class TQueue : NonCopyable {
 
   // not support multi thread comsumers
   ElementType* Peek() {
-    if (mTail.load().mNode->NextNode == nullptr) return nullptr;
-    return &(mTail.load().mNode->NextNode->Item);
+    if (mTail.load()->NextNode == nullptr) return nullptr;
+    return &(mTail.load()->NextNode->Item);
   }
 
   // not support multi thread comsumers
   FORCEINLINE const ElementType* Peek() const { return const_cast<TQueue*>(this)->Peek(); }
 
   bool Pop() { 
-    TNodeInfo currTail, nextVerTail, nextTail;
-    uint32_t uCurrentVersion = mVersion++;
+    TNode* pTail = mTail;
     do {
-      do {
-        currTail = mTail;
-        if (currTail.mNode->NextNode == nullptr) return false;
-        nextVerTail = currTail;
-        nextVerTail.mVersion = uCurrentVersion;
-      } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextVerTail));
-
-      currTail = nextVerTail;
-      nextTail.mNode = currTail.mNode->NextNode;
-    } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextTail));
-    delete currTail.mNode;
+      if (pTail->NextNode == nullptr) return false;
+    } while (!std::atomic_compare_exchange_weak(&mTail, &pTail, pTail->NextNode));
+    TNode* pPop = pTail->NextNode;
+    pPop->BeDeleted = true;
+    pPop->Item = ElementType();
     mSize--;
+    mDelReady.notify_one();
     return true;
   }
 
@@ -100,22 +97,22 @@ class TQueue : NonCopyable {
   struct TNode {
     TNode* volatile NextNode;
     ElementType Item;
-    TNode() : NextNode(nullptr) {}
-    explicit TNode(const ElementType& InItem) : NextNode(nullptr), Item(InItem) {}
-    explicit TNode(ElementType& InItem) : NextNode(nullptr), Item(std::move(InItem)) {}
-  };
-  std::atomic_uint mVersion;
-
-  struct TNodeInfo {
-    TNode* mNode;
-    uint32_t mVersion;
-    TNodeInfo() : mNode(nullptr), mVersion(0){}
+    std::atomic_bool BeDeleted;
+    TNode() : NextNode(nullptr), BeDeleted(false){}
+    explicit TNode(const ElementType& InItem) : NextNode(nullptr), Item(InItem), BeDeleted(false) {}
+    explicit TNode(ElementType& InItem) : NextNode(nullptr), Item(std::move(InItem)), BeDeleted(false) {}
   };
 
-  std::atomic<TNodeInfo> mHead;
-  std::atomic<TNodeInfo> mTail;
+  std::atomic<TNode*> mHead;
+  std::atomic<TNode*> mTail;
+  TNode* mDelTail;
 
   std::atomic_uint64_t mSize;
+
+  std::condition_variable mDelReady;
+  std::mutex mDelMutex;
+  std::atomic_bool mValid;
+  std::thread mDelThread;
 };
 
 template <typename T>

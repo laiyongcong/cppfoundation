@@ -9,14 +9,16 @@ using namespace cppfd;
 
 
 void ThreadTest() { 
-  Thread p1, p2, p3,c1,c2,c3; 
+  Thread p1, p2, p3,c1,c2,c3;
+  ThreadPool pool(3);
   p1.Start("p1");
   p2.Start("p2");
   p3.Start("p3");
   c1.Start("c1");
   c2.Start("c2");
   c3.Start("c3");
-
+  pool.Start("pool");
+  pool.BroadCast([]() { std::cout << "hello world! im " << Thread::GetCurrentThread()->GetName() << std::endl; });
   std::atomic_int gVal = 0;
 
   p1.Post([&]() {
@@ -26,6 +28,7 @@ void ThreadTest() {
       c2.Post([&]() { gVal++; });
       c3.Post([&]() { gVal++; });
       //Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
       i++;
     }
   });
@@ -37,6 +40,7 @@ void ThreadTest() {
       c2.Post([&]() { gVal++; });
       c3.Post([&]() { gVal++; });
       //Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
       i++;
     }
   });
@@ -48,12 +52,13 @@ void ThreadTest() {
       c2.Post([&]() { gVal++; });
       c3.Post([&]() { gVal++; });
       //Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
       i++;
     }
   });
 
-  while (gVal < 9000) {
-    Thread::Milisleep(100);
+  while (gVal < 12000) {
+    Thread::Milisleep(1);
   }
   p1.Stop();
   p2.Stop();
@@ -61,6 +66,7 @@ void ThreadTest() {
   c1.Stop();
   c2.Stop();
   c3.Stop();
+  pool.Stop();
   std::cout << "thread test ok!" << std::endl;
 }
 
