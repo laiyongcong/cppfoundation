@@ -16,6 +16,8 @@
 #define CPPFD_ARCHITECTURE_32 1
 #define CPPFD_ARCHITECTURE_64 2
 
+#define INVALID_ID (-1)
+
 #if defined(__GCCE__)
 #  define CPPFD_COMPILER CPPFD_COMPILER_GCCE
 #  define CPPFD_COMP_VER _MSC_VER

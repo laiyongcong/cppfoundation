@@ -18,7 +18,7 @@ ThreadData::ThreadData(ThreadDataDestructorFunc func) : mDestructor(func) {
   mKey = TlsAlloc();
   if (mKey == TLS_OUT_OF_INDEXES) throw ThreadDataError("TlsAlloc error out of indexes");
 #else 
-  int nRet = pthread_key_create(&mKey, destructor);
+  int nRet = pthread_key_create(&mKey, func);
   if (nRet != 0) throw ThreadDataError("pthread_key_create error, ret:" + std::to_string(nRet));
 #endif
 }

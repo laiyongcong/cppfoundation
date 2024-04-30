@@ -1,8 +1,7 @@
-#pragma once
+﻿#pragma once
 #include "Prerequisites.h"
 #include "Queue.h"
 #include "ThreadData.h"
-#include <shared_mutex>
 #include<condition_variable>
 #include<thread>
 
@@ -18,19 +17,59 @@ class ThreadEvent {
   std::mutex mMutex;
   bool mSignal;
 };
+
+
+typedef TQueue<std::function<void()> > TaskQueue;
+#if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
+typedef ULONG TID;
+typedef unsigned __int64 MODEL_PART;
+#else
+typedef pthread_t TID;
+#endif
+
+// 可重入的读写锁, 多少次lock就需要对应多少次unlock,  只能加读锁或者写锁，不能同时加两种锁
+class ReadWriteLock {
+ public:
+  enum ELockType {
+    None,
+    ReadFirst,
+    WriteFirst,
+  };
+
+ public:
+  ReadWriteLock(ELockType lockType = ELockType::None);
+  void ReadLock();
+  void WriteLock();
+  void UnLock();
+  bool IsNoLock();
+
+ private:
+  std::mutex mMutex;
+  std::condition_variable mReadCV;
+  std::condition_variable mWriteCV;
+  int32_t mReadWaitingCount;
+  int32_t mWriteWaitingCount;
+  ELockType mLockType;
+  std::map<TID, int32_t> mReadingThreadLockTimes;
+  TID mWriteThreadID;
+  int32_t mWriteLockTimes;
+};
+
 class Thread;
 class ThreadKeeper {
   friend class Thread;
+
  public:
-  ~ThreadKeeper() { mRWLocker.unlock_shared(); }
+  ~ThreadKeeper() { mRWLocker.UnLock(); }
   Thread* Keep();
-  FORCEINLINE void Release() { mRWLocker.unlock_shared(); }
+  FORCEINLINE void Release() { mRWLocker.UnLock(); }
+
  private:
   Thread* mThread;
-  std::shared_mutex mRWLocker;
+  ReadWriteLock mRWLocker;
+  bool mIsLock;
 };
 
-typedef TQueue<std::function<void()> > TaskQueue;
 class Thread {
  public:
   Thread();
@@ -44,6 +83,13 @@ class Thread {
     Thread* pCurrThread = (Thread*)sThreadData.Get();
     if (pCurrThread) return pCurrThread->mKeeper;
     return nullptr;
+  }
+  FORCEINLINE static TID GetCurrentThreadID() {
+#if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
+    return GetCurrentThreadId();
+#else
+    return pthread_self();
+#endif
   }
   static void Milisleep(uint32_t uMiliSec);
 

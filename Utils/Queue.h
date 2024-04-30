@@ -57,6 +57,7 @@ class TQueue : NonCopyable {
       } while (!std::atomic_compare_exchange_weak(&mHead, &currHead, nextVerHead));
       currHead = nextVerHead;
     } while (!std::atomic_compare_exchange_weak(&mHead, &currHead, nextHead));
+    std::atomic_thread_fence(std::memory_order_seq_cst);
     currHead.mNode->NextNode = nextHead.mNode;
     mSize++;
     return true;
