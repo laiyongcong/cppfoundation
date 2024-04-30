@@ -32,11 +32,10 @@ class TQueue : NonCopyable {
       
       currTail = nextVerTail;
       nextTail.mNode = currTail.mNode->NextNode;
+      TNode* pPop = currTail.mNode->NextNode;
+      OutItem = pPop->Item;
     } while (!std::atomic_compare_exchange_weak(&mTail, &currTail, nextTail));
 
-    TNode* pPop = currTail.mNode->NextNode;
-    OutItem = std::move(pPop->Item);
-    pPop->Item = ElementType();
     delete currTail.mNode;
     mSize--;
     return true;
