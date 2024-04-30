@@ -259,7 +259,7 @@ void Thread::Routine(Thread* pThread) noexcept {
 
 ThreadData Thread::sThreadData(nullptr);
 
- ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr) {
+ ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr), mTaskQueue(true) {
   if (mThreadNum <= 0) mThreadNum = 1;
   mThreads = new Thread[mThreadNum];
   for (int32_t i = 0; i < mThreadNum; i++) {

@@ -11,25 +11,29 @@ template<typename T>
 class TQueue : NonCopyable {
  public:
   using ElementType = T;
-  TQueue() : mSize(0), mValid(true) { 
+  TQueue(bool bMultiComsumerDelayDelete = false) : mSize(0), mValid(true), mDelayDelete(bMultiComsumerDelayDelete) { 
     mHead = mTail = mDelTail = new TNode;
     mDelTail->BeDeleted = true;
-    mDelThread = std::thread([=]() {
-      while (mValid) {
-        std::unique_lock<std::mutex> lck(mDelMutex);
-        mDelReady.wait(lck, [=]() { return !mValid.load() && mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted.load(); });
-        while (mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted) {
-          TNode* pDel = mDelTail;
-          mDelTail = mDelTail->NextNode;
-          delete pDel;
+    if (mDelayDelete) {
+      mDelThread = std::thread([=]() {
+        while (mValid) {
+          std::unique_lock<std::mutex> lck(mDelMutex);
+          mDelReady.wait(lck, [=]() { return !mValid.load() && mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted.load(); });
+          while (mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted) {
+            TNode* pDel = mDelTail;
+            mDelTail = mDelTail->NextNode;
+            delete pDel;
+          }
         }
-      }
-    });
+      });
+    }
   }
   ~TQueue() {
-    mValid = false;
-    mDelReady.notify_one();
-    mDelThread.join();
+    if (mDelayDelete) {
+      mValid = false;
+      mDelReady.notify_one();
+      mDelThread.join();
+    }
     TNode* pTail = mTail.load();
     while (pTail != nullptr) {
       TNode* pNode = pTail;
@@ -49,7 +53,10 @@ class TQueue : NonCopyable {
     pPop->BeDeleted = true;
     pPop->Item = ElementType();
     mSize--;
-    mDelReady.notify_one();
+    if (mDelayDelete)
+      mDelReady.notify_one();
+    else
+      delete pTail;
     return true;
   }
 
@@ -85,7 +92,10 @@ class TQueue : NonCopyable {
     pPop->BeDeleted = true;
     pPop->Item = ElementType();
     mSize--;
-    mDelReady.notify_one();
+    if (mDelayDelete)
+      mDelReady.notify_one();
+    else
+      delete pTail;
     return true;
   }
 
@@ -113,6 +123,8 @@ class TQueue : NonCopyable {
   std::mutex mDelMutex;
   std::atomic_bool mValid;
   std::thread mDelThread;
+
+  bool mDelayDelete;
 };
 
 template <typename T>
