@@ -1,6 +1,7 @@
 #include "Utils.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 #  include <windows.h>
+#include <Psapi.h>
 #  pragma warning(disable : 4091)
 #  include <DbgHelp.h>
 #  include <direct.h>
@@ -20,6 +21,138 @@
 #  include <netdb.h>
 #  include <arpa/inet.h>
 #  include <errno.h>
+#  include <sys/param.h>
+#  include <sys/stat.h>
+#  include <ctype.h>
+#  include <dirent.h>
+#  include <fnmatch.h>
+#  include <string.h>
+
+/* Our simplified data entry structure */
+struct _finddata_t {
+  char* name;
+  int attrib;
+  unsigned long size;
+};
+
+#  define _A_NORMAL 0x00 /* Normalfile-Noread/writerestrictions */
+#  define _A_RDONLY 0x01 /* Read only file */
+#  define _A_HIDDEN 0x02 /* Hidden file */
+#  define _A_SYSTEM 0x04 /* System file */
+#  define _A_ARCH 0x20   /* Archive file */
+#  define _A_SUBDIR 0x10 /* Subdirectory */
+
+struct _find_search_t {
+  char* pattern;
+  char* curfn;
+  char* directory;
+  int dirlen;
+  DIR* dirfd;
+};
+
+int _findnext(intptr_t id, struct _finddata_t* data) {
+  _find_search_t* fs = (_find_search_t*)id;
+
+  /* Loop until we run out of entries or find the next one */
+  dirent* entry;
+
+  for (;;) {
+    if (!(entry = readdir(fs->dirfd))) return -1;
+
+    /* See if the filename matches our pattern */
+    if (fnmatch(fs->pattern, entry->d_name, 0) == 0) break;
+  }
+
+  if (fs->curfn) free(fs->curfn);
+
+  data->name = fs->curfn = SimCloud::StrDup(entry->d_name);
+
+  size_t namelen = strlen(entry->d_name);
+  char* xfn = new char[fs->dirlen + 1 + namelen + 1];
+  sprintf(xfn, "%s/%s", fs->directory, entry->d_name);
+
+  /* stat the file to get if it's a subdir and to find its length */
+  struct stat stat_buf;
+
+  if (stat(xfn, &stat_buf)) {
+    // Hmm strange, imitate a zero-length file then
+    data->attrib = _A_NORMAL;
+    data->size = 0;
+  } else {
+    if (S_ISDIR(stat_buf.st_mode))
+      data->attrib = _A_SUBDIR;
+    else
+      /* Default type to a normal file */
+      data->attrib = _A_NORMAL;
+
+    data->size = (unsigned long)stat_buf.st_size;
+  }
+
+  delete[] xfn;
+
+  /* Files starting with a dot are hidden files in Unix */
+  if (data->name[0] == '.') data->attrib |= _A_HIDDEN;
+
+  return 0;
+}
+
+int _findclose(intptr_t id) {
+  int ret;
+  _find_search_t* fs = (_find_search_t*)id;
+
+  ret = fs->dirfd ? closedir(fs->dirfd) : 0;
+  free(fs->pattern);
+  free(fs->directory);
+
+  if (fs->curfn) free(fs->curfn);
+
+  delete fs;
+
+  return ret;
+}
+
+intptr_t _findfirst(const char* pattern, struct _finddata_t* data) {
+  _find_search_t* fs = new _find_search_t;
+  fs->curfn = NULL;
+  fs->pattern = NULL;
+
+  // Separate the mask from directory name
+  const char* mask = strrchr(pattern, '/');
+
+  if (mask) {
+    fs->dirlen = mask - pattern;
+    mask++;
+    fs->directory = (char*)malloc(fs->dirlen + 1);
+    memcpy(fs->directory, pattern, fs->dirlen);
+    fs->directory[fs->dirlen] = 0;
+  } else {
+    mask = pattern;
+    fs->directory = SimCloud::StrDup(".");
+    fs->dirlen = 1;
+  }
+
+  fs->dirfd = opendir(fs->directory);
+
+  if (!fs->dirfd) {
+    _findclose((intptr_t)fs);
+
+    return -1;
+  }
+
+  /* Hack for "*.*" -> "*' from DOS/Windows */
+  if (strcmp(mask, "*.*") == 0) mask += 2;
+
+  fs->pattern = SimCloud::StrDup(mask);
+
+  /* Get the first entry */
+  if (_findnext((intptr_t)fs, data) < 0) {
+    _findclose((intptr_t)fs);
+
+    return -1;
+  }
+
+  return (intptr_t)fs;
+}
 #endif
 
 namespace cppfd {
@@ -216,4 +349,105 @@ uint64_t Utils::GetTimeMiliSec() {
   if (GetTimeOfDay(&tv, nullptr) != 0) return 0;
   return ((uint64_t)tv.tv_usec) / 1000 + ((uint64_t)tv.tv_sec) * 1000;
 }
+
+void Utils::StringTrim(String& strInput, bool bLeft /*= true*/, bool bRight /*= true*/) {
+  static const String strDelims = " \t\r\n ";
+
+  if (bRight) strInput.erase(strInput.find_last_not_of(strDelims) + 1);  // trim bRight
+  if (bLeft) strInput.erase(0, strInput.find_first_not_of(strDelims));  // trim bLeft
+}
+
+FORCEINLINE void MkDir(const char* szDir) {
+#if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
+  _mkdir(szDir);
+#else
+  mkdir(szDir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+#endif
+}
+
+void Utils::MkDirs(const String& strPath) { 
+  String strTmp = strPath; 
+  StringTrim(strTmp);
+  std::replace(strTmp.begin(), strTmp.end(), '\\', '/');
+  if (strTmp == "." || strTmp == "./" || strTmp == ".." || strTmp == "../") {
+    return;
+  }
+  size_t ipos = strTmp.find('/');
+  size_t isize = strTmp.size();
+  while (ipos != String::npos) {
+    String strDir = strTmp.substr(0, ipos);
+    if (strDir != "." && strDir != "..") MkDir(strDir.c_str());
+    ipos = strTmp.find('/', ipos + 1);
+  }
+  MkDir(strTmp.c_str());
+}
+
+int Utils::GetProcessID() {
+#if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
+  return ::GetCurrentProcessId();
+#else
+  return getpid();
+#endif
+}
+
+void Utils::FindFiles(const String& strPattern, bool bRecursive, std::vector<String>* pFileList) {
+  if (pFileList == nullptr) return;
+  String strTmpPattern = strPattern;
+  if (strTmpPattern == "." || strTmpPattern == "..") {
+    strTmpPattern += "/";
+  }
+  std::replace(strTmpPattern.begin(), strTmpPattern.end(), '\\', '/');
+  size_t pos1 = strTmpPattern.rfind('/');
+
+  String directory = "./";
+  String pattern = strTmpPattern;
+
+  if (pos1 != strTmpPattern.npos) {
+    directory = strTmpPattern.substr(0, pos1 + 1);
+    pattern = strTmpPattern.substr(pos1 + 1);
+  }
+
+  if (pattern == "") {
+    pattern = "*.*";
+    strTmpPattern = directory + pattern;
+  }
+
+  intptr_t hFile;
+  _finddata_t fileinfo;
+
+  if ((hFile = _findfirst(strTmpPattern.c_str(), &fileinfo)) != -1) {
+    do {
+      if (!(fileinfo.attrib & _A_SUBDIR)) {
+        String strFile = directory;
+        strFile += fileinfo.name;
+        pFileList->push_back(strFile);
+      }
+    } while (_findnext(hFile, &fileinfo) == 0);
+
+    _findclose(hFile);
+  }
+
+  if (!bRecursive) {
+    return;
+  }
+
+  String strNewPattern = directory + "*.*";
+
+  if ((hFile = _findfirst(strNewPattern.c_str(), &fileinfo)) != -1) {
+    do {
+      if ((fileinfo.attrib & _A_SUBDIR)) {
+        if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0) {
+          String strSubDir = directory;
+          strSubDir += fileinfo.name;
+          strSubDir += "/";
+          strSubDir += pattern;
+          FindFiles(strSubDir, bRecursive, pFileList);
+        }
+      }
+    } while (_findnext(hFile, &fileinfo) == 0);
+
+    _findclose(hFile);
+  }
+}
+
 }  // namespace cppfd

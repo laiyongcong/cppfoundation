@@ -3,6 +3,7 @@
 #include "TestHeader2.h"
 #include "RefJson.h"
 #include "Thread.h"
+#include "Log.h"
 
 using namespace cppfd;
 
@@ -106,7 +107,22 @@ void ThreadTest() {
   std::cout << "thread test ok!" << std::endl;
 }
 
+void TestLog() { 
+  LogConfig cfg;
+  cfg.ProcessName = "testLog";
+  Log::Init(cfg);
+  uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
+  for (int i = 0; i < 100000; i++) {
+    LOG_TRACE("this is test log %d", i);
+  }
+  uint64_t uTime2 = cppfd::Utils::GetTimeMiliSec();
+  std::cout << "log cost " << uTime2 - uTime1 << std::endl;
+  Log::Destroy();
+}
+
 void main(int argc, char** argv) {
+  TestLog();
+
   uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
   ThreadTest();
   uint64_t uTime2 = cppfd::Utils::GetTimeMiliSec();

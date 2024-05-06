@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdarg>
 #include <cmath>
+#include <time.h>
 
 // STL containers
 #include <vector>
@@ -55,6 +56,9 @@ extern "C" {
       tsnprintf(DST, (LEN)-1, fmt, __VA_ARGS__); \
       (DST)[(LEN)-1] = 0;                        \
     } while (0)
+
+#  define localtime_r(a, b) localtime_s(b, a)
+#  define gmtime_r(a, b) gmtime_s(b, a)
 #else
 #  define tsnprintf snprintf
 #  define tvsnprintf vsnprintf

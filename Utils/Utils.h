@@ -18,5 +18,9 @@ class Utils {
   static String Double2String(double dNumber, uint32_t uDigit);
   static int GetTimeOfDay(struct timeval* tp, void* tzp);
   static uint64_t GetTimeMiliSec();
+  static void StringTrim(String& strInput, bool bLeft = true, bool bRight = true);
+  static void MkDirs(const String& strPath);
+  static int GetProcessID();
+  static void FindFiles(const String& strPattern, bool bRecursive, std::vector<String>* pFileList);
 };
 }

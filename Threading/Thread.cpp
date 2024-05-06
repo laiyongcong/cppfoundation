@@ -136,12 +136,12 @@ Thread* ThreadKeeper::Keep() {
   return mThread;
 }
 
- Thread::Thread() : mRunningFlag(0), mPool(nullptr) { 
+Thread::Thread() : mRunningFlag(0), mPool(nullptr) { 
   mKeeper = std::make_shared<ThreadKeeper>();
   mKeeper->mThread = this;
- }
+}
 
- Thread::~Thread() { Stop(); }
+Thread::~Thread() { Stop();}
 
 void Thread::Start(const String& strName) {
   if (++mRunningFlag > 1) {
@@ -262,7 +262,8 @@ ThreadData Thread::sThreadData(nullptr);
  }
 
  ThreadPool::~ThreadPool() { 
-     SAFE_DELETE_ARRAY(mThreads);
+   Stop();
+   SAFE_DELETE_ARRAY(mThreads);
  }
 
 void ThreadPool::Start(const String& strName) {
@@ -323,6 +324,49 @@ void ThreadPool::BroadCast(const std::function<void()>& func) {
     nCount++;
   }
   return nCount;
+ }
+
+ StepsTask::StepsTask(int32_t nTaskSteps) : mTotalSteps(nTaskSteps), mSucSteps(0), mFailSteps(0), mStepCounter(0) {}
+ StepsTask::~StepsTask() {}
+
+ void StepsTask::IncFailStep() {
+  mMutex.lock();
+  ++mFailSteps;
+  if (++mStepCounter >= mTotalSteps) {
+    mMutex.unlock();
+    mCond.notify_all();
+  } else {
+    mMutex.unlock();
+  }
+ }
+
+ void StepsTask::IncSuccessStep() {
+  mMutex.lock();
+  ++mSucSteps;
+  if (++mStepCounter >= mTotalSteps) {
+    mMutex.unlock();
+    mCond.notify_all();
+  } else {
+    mMutex.unlock();
+  }
+ }
+
+ bool StepsTask::IsTaskSuccess() const {
+  if (mFailSteps == 0 && mSucSteps >= mTotalSteps) {
+    return true;
+  }
+  return false;
+ }
+
+ void StepsTask::Wait() {
+  mMutex.lock();
+  if (mStepCounter >= mTotalSteps) {
+    mMutex.unlock();
+    return;
+  }
+  mMutex.unlock();
+  std::unique_lock<std::mutex> lck(mMutex);
+  mCond.wait(lck);
  }
 
 }  // namespace cppfd

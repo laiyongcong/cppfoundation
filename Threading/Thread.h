@@ -139,6 +139,8 @@ class Thread {
 
   FORCEINLINE const String& GetName() const { return mName; }
 
+  FORCEINLINE bool IsRunning() const { return mRunningFlag > 0; }
+
  private:
   static void Routine(Thread* pThread) noexcept;
  private:
@@ -219,6 +221,27 @@ class ThreadPool {
   int32_t mThreadNum;
   std::atomic_int mRunningFlag;
   std::atomic_int32_t mBroadCastNum;
+};
+
+class StepsTask {
+ public:
+  StepsTask(int32_t nTaskSteps);
+  ~StepsTask();
+  void IncSuccessStep();
+  void IncFailStep();
+  bool IsTaskSuccess() const;
+  int32_t GetSucessCount() { return mSucSteps; }
+  int32_t GetFailCount() { return mFailSteps; }
+  void Wait();
+
+ private:
+  int32_t mTotalSteps;
+  int32_t mSucSteps;
+  int32_t mFailSteps;
+  int32_t mStepCounter;
+
+  std::condition_variable mCond;
+  std::mutex mMutex;
 };
 
 }
