@@ -17,5 +17,6 @@ class Utils {
   static void StringUnExcape(const String& strInput, String& strRes);
   static String Double2String(double dNumber, uint32_t uDigit);
   static int GetTimeOfDay(struct timeval* tp, void* tzp);
+  static uint64_t GetTimeMiliSec();
 };
 }

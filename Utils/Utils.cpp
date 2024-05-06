@@ -211,4 +211,9 @@ int Utils::GetTimeOfDay(struct timeval* tp, void* tzp) {
 #endif
 }
 
- }  // namespace cppfd
+uint64_t Utils::GetTimeMiliSec() {
+  timeval tv;
+  if (GetTimeOfDay(&tv, nullptr) != 0) return 0;
+  return ((uint64_t)tv.tv_usec) / 1000 + ((uint64_t)tv.tv_sec) * 1000;
+}
+}  // namespace cppfd
