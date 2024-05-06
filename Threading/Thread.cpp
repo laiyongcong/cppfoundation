@@ -13,12 +13,6 @@
 #endif
 
 namespace cppfd {
-
-void ThreadTaskQueueDestroy(void* pTaskQueue) {
-  if (pTaskQueue == nullptr) return;
-  delete (TaskQueue*)pTaskQueue;
-}
-
 void ThreadEvent::Wait(uint32_t uMillisec) {
   std::unique_lock<std::mutex> lck(mMutex);
   if (!mSignal) mCond.wait_for(lck, std::chrono::milliseconds(uMillisec));
@@ -259,7 +253,7 @@ void Thread::Routine(Thread* pThread) noexcept {
 
 ThreadData Thread::sThreadData(nullptr);
 
- ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr), mTaskQueue(true) {
+ ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr) {
   if (mThreadNum <= 0) mThreadNum = 1;
   mThreads = new Thread[mThreadNum];
   for (int32_t i = 0; i < mThreadNum; i++) {

@@ -21,8 +21,6 @@ class ThreadEvent {
   bool mSignal;
 };
 
-
-typedef TQueue<std::function<void()> > TaskQueue;
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 typedef DWORD TID;
 typedef unsigned __int64 MODEL_PART;
@@ -149,7 +147,7 @@ class Thread {
   std::thread mThread;
   ThreadEvent mEvent;
   static ThreadData sThreadData;
-  TaskQueue mTaskQueue;
+  TMultiV1Queue<std::function<void()> > mTaskQueue;
   std::shared_ptr<ThreadKeeper> mKeeper;
   ThreadPool* mPool;
 };
@@ -214,7 +212,7 @@ class ThreadPool {
   int32_t RunTask();
  private:
   Thread* mThreads;
-  TaskQueue mTaskQueue;
+  TQueue<std::function<void()> > mTaskQueue;
   std::mutex mQueueLock;               /* 队列互斥锁 */
   std::condition_variable mQueueReady; /* 队列条件锁 */
   String mName;

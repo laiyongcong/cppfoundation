@@ -10,7 +10,7 @@ using namespace cppfd;
 
 void ThreadTest() { 
   Thread p1, p2, p3,c1,c2,c3;
-  ThreadPool pool(3);
+  ThreadPool pool(30);
   p1.Start("p1");
   p2.Start("p2");
   p3.Start("p3");
@@ -23,11 +23,11 @@ void ThreadTest() {
 
   p1.Post([&]() {
     int i = 0;
-    while ( i < 1000){
-      c1.Post([&](){ gVal++;});
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
       c2.Post([&]() { gVal++; });
-      c3.Post([&]() { gVal++; });
-      //Thread::Milisleep(1);
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
       pool.Post([&]() { gVal++; });
       i++;
     }
@@ -35,11 +35,11 @@ void ThreadTest() {
 
   p2.Post([&]() {
     int i = 0;
-    while (i < 1000) {
-      c1.Post([&]() { gVal++; });
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
       c2.Post([&]() { gVal++; });
-      c3.Post([&]() { gVal++; });
-      //Thread::Milisleep(1);
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
       pool.Post([&]() { gVal++; });
       i++;
     }
@@ -47,17 +47,53 @@ void ThreadTest() {
 
   p3.Post([&]() {
     int i = 0;
-    while (i < 1000) {
-      c1.Post([&]() { gVal++; });
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
       c2.Post([&]() { gVal++; });
-      c3.Post([&]() { gVal++; });
-      //Thread::Milisleep(1);
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
       pool.Post([&]() { gVal++; });
       i++;
     }
   });
 
-  while (gVal < 12000) {
+  c1.Post([&]() {
+    int i = 0;
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
+      i++;
+    }
+  });
+
+  c2.Post([&]() {
+    int i = 0;
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
+      i++;
+    }
+  });
+
+  c3.Post([&]() {
+    int i = 0;
+    while (i < 10000000) {
+      /*c1.Post([&]() { gVal++; });
+      c2.Post([&]() { gVal++; });
+      c3.Post([&]() { gVal++; });*/
+      // Thread::Milisleep(1);
+      pool.Post([&]() { gVal++; });
+      i++;
+    }
+  });
+
+  while (gVal < 60000000) {
     Thread::Milisleep(1);
   }
   p1.Stop();
@@ -71,7 +107,10 @@ void ThreadTest() {
 }
 
 void main(int argc, char** argv) {
+  uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
   ThreadTest();
+  uint64_t uTime2 = cppfd::Utils::GetTimeMiliSec();
+  std::cout << "cost " << uTime2 - uTime1 << std::endl;
 
   const Class* pTestClass = Class::GetClass<TestClass>();
   const Class* pTestSubClass = Class::GetClass<TestSubClass>();
