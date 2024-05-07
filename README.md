@@ -146,6 +146,8 @@ bool JsonBase::IsBuildInType(const std::type_info& tinfo) {
 
 多线程编程中，可能会遇到多个任务分解问题，大的任务划分为子任务后，由线程池完成各个子任务，结果最终整合到一起继续进行后续处理，这种情况可以使用cppfd::StepsTask
 
+在多线程环境中，线程之间相互调用，线程回调可能会遇到发起任务的线程已经退出的情形，此时回调会导致程序崩溃，因此提供了cppfd::ThreadKeeper来判断或者防止回调时线程已经结束，避免程序的崩溃。
+
 ## 日志系统
 见Log/Log.h 日志的Init会创建一个独立的日志线程，日志线程每100毫秒会把缓冲区刷到日志文件和标准输出，日志等级分为FATAL、ERROR、WARNING、INFO、DEBUG，其中ERROR以及FATAL除了在INFO日志文件中作为一个整体打印，也会单独输出到ERROR日志文件中。
 
