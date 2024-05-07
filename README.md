@@ -4,7 +4,7 @@ cppfoundation是一个c++基础库，这部分代码曾经在某游戏项目中�
 该基础库主要包含：
 * c++反射（已完成）
 * 基于c++反射的对象的json序列化和反序列化（已完成）
-* 基于c++反射的csv文件读取（计划实现，也可以实现yaml文件读取，依赖于yaml-cpp）
+* 基于c++反射的csv文件读取（已完成，也可以实现yaml文件读取，依赖于yaml-cpp）
 * 线程框架（已完成）
 * 日志系统（已完成）
 * 网络通信框架（计划中）
@@ -154,3 +154,17 @@ bool JsonBase::IsBuildInType(const std::type_info& tinfo) {
 日志系统可以设置切分方式：天、小时、分钟，为了避免单个日志文件过大，日志文件达到单个文件大小（MB）限制后会自动重命名。
 
 日志系统可以设置日志的保留时间，单位为天。
+
+## 类csv文件的读写
+具体实现见Utils/TabFile.h， csv文件的读写依赖于反射，文件的首行是被反射对象的字段列表，文件中可以增加注释行，需要以“#”开头,其中Delim一般为“\t”或者“,”，其主要结构如下：
+```
+template <typename T, const char Delim>
+class TabFile {
+ public:
+  std::vector<T> mItems;
+ public:
+  bool OpenFromTxt(const char* szTabFile, int nIgnoreLines = 0) { ... }
+  bool Save(const char* szTabFile) const { ... }
+  ...
+};
+```

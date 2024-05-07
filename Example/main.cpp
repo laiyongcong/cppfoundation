@@ -4,6 +4,7 @@
 #include "RefJson.h"
 #include "Thread.h"
 #include "Log.h"
+#include "TabFile.h"
 
 using namespace cppfd;
 
@@ -121,12 +122,12 @@ void TestLog() {
 }
 
 int main(int argc, char** argv) {
-  TestLog();
+  /*TestLog();
 
   uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
   ThreadTest();
   uint64_t uTime2 = cppfd::Utils::GetTimeMiliSec();
-  std::cout << "cost " << uTime2 - uTime1 << std::endl;
+  std::cout << "cost " << uTime2 - uTime1 << std::endl;*/
 
   const Class* pTestClass = Class::GetClass<TestClass>();
   const Class* pTestSubClass = Class::GetClass<TestSubClass>();
@@ -232,14 +233,14 @@ int main(int argc, char** argv) {
   TestStruct testStruct1;
   testStruct1.mVal = 1;
   testStruct1.StrArray.mItems.push_back("a");
-  testStruct1.StrArray.mItems.push_back("{bbb\r\n\tccc}[]");
+  testStruct1.StrArray.mItems.push_back("{bbb,\"\r\n\tccc}[]");
   testStruct1.IntValMap.mObjMap["val1"] = 1;
   testStruct1.IntValMap.mObjMap["val2"] = 2;
 
   TestStruct testStruct2;
   testStruct2.mVal = 2;
   testStruct2.StrArray.mItems.push_back("b");
-  testStruct2.StrArray.mItems.push_back("{bbb\r\n\tccc}[]");
+  testStruct2.StrArray.mItems.push_back("{bbb\r\n\tcc,\"c}[]");
   testStruct2.IntValMap.mObjMap["val1"] = 1;
   testStruct2.IntValMap.mObjMap["val2"] = 2;
 
@@ -293,5 +294,21 @@ int main(int argc, char** argv) {
 
   JsonBase::FromJsonString(&testObjMap2, strJson);
 
+
+  baseObj.Content[0] = '"';
+  baseObj.Content[1] = 0;
+  baseObj2.Content[0] = 0;
+
+  TabFile<TestBaseObj, ','> tabFile, tabFile2;
+  tabFile.mItems.push_back(baseObj);
+  tabFile.mItems.push_back(baseObj2);
+
+  
+  tabFile.Save("./test.csv");
+  
+  tabFile2.OpenFromTxt("./test.csv");
+
+  tabFile2.Save("./test2.csv");
+  
   return 0;
 }

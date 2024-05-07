@@ -86,7 +86,7 @@ class LogImp : public Thread {
         fprintf(stdout, "%s", it.second.str().c_str());
       const char* szFileName = (mCfg.Path + strFileName).c_str();
       FILE* fd = fopen(szFileName, "ab+");
-      if (fd == NULL) {
+      if (fd == nullptr) {
         printf("Log File:%s Open Error %s\n", szFileName, strerror(errno));
         continue;
       }
@@ -95,11 +95,11 @@ class LogImp : public Thread {
       fseek(fd, 0L, SEEK_END);
       uint64_t ufilesize = (uint64_t)ftell(fd);
       fclose(fd);
-      fd = NULL;
+      fd = nullptr;
 
       if (ufilesize >= mCfg.MaxSize) {
         char newFileName[1024] = {0};
-        uint64_t uNow = (uint64_t)time(NULL);
+        uint64_t uNow = (uint64_t)time(nullptr);
         safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", szFileName, uNow);
         rename(szFileName, newFileName);
       }
@@ -195,7 +195,7 @@ void Log::WriteLog(ELogLevel eLogLevel, const char* szFormat, ...) {
 bool Log::IsValid() { return gLogInstance != nullptr; }
 
 const char* Log::GetFileName(const char* szFileName) {
-  if (szFileName == NULL) return "";
+  if (szFileName == nullptr) return "";
 
   int nlen = (int)strlen(szFileName);
 
@@ -209,7 +209,7 @@ const char* Log::GetFileName(const char* szFileName) {
 }
 
 const char* Log::GetFuncName(const char* szFuncName) {
-  if (szFuncName == NULL) return "";
+  if (szFuncName == nullptr) return "";
 
   int nlen = (int)strlen(szFuncName);
   int nPos = 0;

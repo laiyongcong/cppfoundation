@@ -251,7 +251,7 @@ void Utils::StringExcape(const String& strInput, String& strRes) {
       //{'[', "\\["},  
       //{']', "\\]"}
   };
-
+  strRes.clear();
   for (char ch : strInput) {
     if (escapeChars.count(ch)) {
       strRes.append(escapeChars[ch]);
@@ -278,7 +278,7 @@ void Utils::StringUnExcape(const String& strInput, String& strRes) {
       //{"\\[", '['},  
       //{"\\]", ']'}
   };
-
+  strRes.clear();
   for (size_t i = 0; i < strInput.size(); ++i) {
     if (strInput[i] == '\\' && i + 1 < strInput.size()) {
       String escapeSeq = strInput.substr(i, 2);
@@ -292,6 +292,30 @@ void Utils::StringUnExcape(const String& strInput, String& strRes) {
       strRes += strInput[i];
     }
   }
+ }
+
+cppfd::String Utils::StringExcapeChar(const String& strInput, const char excapeChar) {
+  String strRes;
+  for (char ch : strInput) {
+    if (ch == excapeChar) {
+      strRes.append(1, excapeChar);
+    }
+    strRes.append(1, ch);
+  }
+  return std::move(strRes);
+ }
+
+cppfd::String Utils::StringUnExcapeChar(const String& strInput, const char excapeChar) {
+  String strRes;
+  for (size_t i = 0; i < strInput.size(); ++i) {
+    if (strInput[i] == excapeChar && i + 1 < strInput.size() && strInput[i + 1] == excapeChar) {
+      strRes.append(1, strInput[i]);
+      i++;
+    } else {
+      strRes.append(1, strInput[i]);
+    }
+  }
+  return std::move(strRes);
  }
 
 String Utils::Double2String(double dNumber, uint32_t uDigit) {

@@ -48,11 +48,12 @@ class JsonBase {
     return FromJsonString(pObj, *pClass, strJson);
   }
 
+  static String ToJsonString(const void* pAddr, const Class& refClass);
+  static bool FromJsonString(void* pAddr, const Class& refClass, const String& strJson);
+
  protected:
   static bool Content2Field(void* pDataAddr, const std::type_info& tinfo, uint32_t nCount, const char* szContent, uint32_t nContentLen);
   static String Field2Json(const void* pData, const std::type_info& tInfo);
-  static String ToJsonString(const void* pAddr, const Class& refClass);
-  static bool FromJsonString(void* pAddr, const Class& refClass, const String& strJson);
 
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") = 0;
   virtual void* NewItem() const = 0;

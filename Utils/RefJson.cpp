@@ -417,10 +417,10 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
     *(double*)pDataAddr = dVal;
   }
   else if (tinfo == typeid(bool)) {
-    if (nContentLen == 4 && (::memcmp(szContent, "true", nContentLen) == 0 || ::memcmp(szContent, "True", nContentLen) == 0 || ::memcmp(szContent, "TRUE", nContentLen) == 0)) {
+    if (nContentLen == 1 && (szContent[0] == 't' || szContent[0] == 'T')) {
       *(bool*)pDataAddr = true;
     } 
-    else if (nContentLen == 5 && (::memcmp(szContent, "false", nContentLen) == 0 || ::memcmp(szContent, "False", nContentLen) == 0 || ::memcmp(szContent, "FALSE", nContentLen) == 0)) {
+    else if (nContentLen == 1 && (szContent[0] == 'f' || szContent[0] == 'F')) {
       *(bool*)pDataAddr = false;
     }
     else if (nContentLen == 1) {
@@ -445,22 +445,22 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
   const static Class* pJsonClass = Class::GetClass(typeid(JsonBase));
 
   char tmpBuff[32] = {0};
-  if (tInfo == typeid(int8_t)) {
+  if (tInfo == typeid(int8_t) || tInfo == typeid(char)) {
     int32_t nVal = *((int8_t*)pData);
-      safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
+    safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
   } else if (tInfo == typeid(String)) {
-      String strRes;
-      Utils::StringExcape(*((String*)pData), strRes);
-      return "\"" + strRes + "\"";
+    String strRes;
+    Utils::StringExcape(*((String*)pData), strRes);
+    return "\"" + strRes + "\"";
   } else if (tInfo == typeid(int16_t)) {
-      int32_t nVal = *((int16_t*)pData);
-      safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
+    int32_t nVal = *((int16_t*)pData);
+    safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
   } else if (tInfo == typeid(int32_t)) {
-      int32_t nVal = *((int32_t*)pData);
-      safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
+    int32_t nVal = *((int32_t*)pData);
+    safe_printf(tmpBuff, sizeof(tmpBuff), "%d", nVal);
   } else if (tInfo == typeid(int64_t)) {
-      int64_t nVal = *((int64_t*)pData);
-      safe_printf(tmpBuff, sizeof(tmpBuff), "%" PRId64, nVal);
+    int64_t nVal = *((int64_t*)pData);
+    safe_printf(tmpBuff, sizeof(tmpBuff), "%" PRId64, nVal);
   } else if (tInfo == typeid(uint8_t)) {
     uint32_t uVal = *((uint8_t*)pData);
     safe_printf(tmpBuff, sizeof(tmpBuff), "%u", uVal);
@@ -583,6 +583,7 @@ bool JsonBase::FromJsonString(void* pAddr, const Class& refClass, const String& 
 
 bool JsonBase::IsBuildInType(const std::type_info& tinfo) {
   if (tinfo == typeid(int8_t) || 
+      tinfo == typeid(char) || 
       tinfo == typeid(uint8_t) || 
       tinfo == typeid(int16_t) || 
       tinfo == typeid(uint16_t) || 

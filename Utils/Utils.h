@@ -15,6 +15,8 @@ class Utils {
   static void String2LowerCase(String& strString);
   static void StringExcape(const String& strInput, String& strRes);
   static void StringUnExcape(const String& strInput, String& strRes);
+  static String StringExcapeChar(const String& strInput, const char excapeChar);
+  static String StringUnExcapeChar(const String& strInput, const char excapeChar);
   static String Double2String(double dNumber, uint32_t uDigit);
   static int GetTimeOfDay(struct timeval* tp, void* tzp);
   static uint64_t GetTimeMiliSec();
@@ -23,7 +25,7 @@ class Utils {
   static int GetProcessID();
   static void FindFiles(const String& strPattern, bool bRecursive, std::vector<String>* pFileList);
   FORCEINLINE static char* StrDup(const char* szInput) {
-    char* szRes = NULL;
+    char* szRes = nullptr;
     if (szInput && (szRes = (char*)malloc(strlen(szInput) + 1))) strcpy(szRes, szInput);
     return szRes;
   }

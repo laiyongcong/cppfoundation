@@ -59,6 +59,15 @@ class Log {
       }                                                                                                                                                                       \
     } while (0)
 
+#  define LOG_ERROR(fmt, ...)                                                                                                                                                 \
+    do {                                                                                                                                                                      \
+      if (cppfd::Log::IsValid()) {                                                                                                                                            \
+        cppfd::Log::WriteLog(cppfd::ELogLevel_Error, "[%s:%d][fun:%s]" fmt, cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), __VA_ARGS__); \
+      } else {                                                                                                                                                                \
+        fprintf(stderr, "ERROR [%s:%d][fun:%s]" fmt "\n", cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), __VA_ARGS__);                   \
+      }                                                                                                                                                                       \
+    } while (0)
+
 #  define LOG_TRACE(fmt, ...)                                                                                                                                               \
     do {                                                                                                                                                                     \
       if (cppfd::Log::IsValid()) {                                                                                                                                           \
@@ -92,6 +101,15 @@ class Log {
         cppfd::Log::WriteLog(cppfd::ELogLevel_Fatal, "[%s:%d][fun:%s]" fmt, cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), ##_arg); \
       } else {                                                                                                                                                           \
         fprintf(stderr, "FATAL [%s:%d][fun:%s]" fmt "\n", cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), ##_arg);                   \
+      }                                                                                                                                                                  \
+    } while (0)
+
+#  define LOG_ERROR(fmt, _arg...)                                                                                                                                        \
+    do {                                                                                                                                                                 \
+      if (cppfd::Log::IsValid()) {                                                                                                                                       \
+        cppfd::Log::WriteLog(cppfd::ELogLevel_Error, "[%s:%d][fun:%s]" fmt, cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), ##_arg); \
+      } else {                                                                                                                                                           \
+        fprintf(stderr, "ERROR [%s:%d][fun:%s]" fmt "\n", cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), ##_arg);                   \
       }                                                                                                                                                                  \
     } while (0)
 

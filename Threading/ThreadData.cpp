@@ -49,7 +49,7 @@ bool ThreadData::Set(void* pData) {
     mDestructor(pOldData);
   }
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
-  if (mDestructor && pData != NULL) {
+  if (mDestructor && pData != nullptr) {
     std::lock_guard<std::mutex> lock(mLocker);
     mDataPtrList.push_back(pData);
   }

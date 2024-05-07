@@ -96,16 +96,16 @@
 
 #ifndef SAFE_DELETE
 #  define SAFE_DELETE(x) \
-    if ((x) != NULL) {   \
+    if ((x) != nullptr) {\
       delete x;          \
-      (x) = NULL;        \
+      (x) = nullptr;     \
     }
 #endif
 
 #ifndef SAFE_DELETE_ARRAY
 #  define SAFE_DELETE_ARRAY(x) \
-    if ((x) != NULL) {         \
+    if ((x) != nullptr) {      \
       delete[] x;              \
-      (x) = NULL;              \
+      (x) = nullptr;           \
     }
 #endif
