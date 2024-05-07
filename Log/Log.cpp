@@ -98,9 +98,9 @@ class LogImp : public Thread {
       fd = NULL;
 
       if (ufilesize >= mCfg.MaxSize) {
-        char newFileName[MAX_PATH] = {0};
-        UINT uNow = (UINT)time(NULL);
-        safe_printf(newFileName, sizeof(newFileName), "%s.%u.log", szFileName, uNow);
+        char newFileName[1024] = {0};
+        uint64_t uNow = (uint64_t)time(NULL);
+        safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", szFileName, uNow);
         rename(szFileName, newFileName);
       }
     }
@@ -212,7 +212,7 @@ const char* Log::GetFuncName(const char* szFuncName) {
   if (szFuncName == NULL) return "";
 
   int nlen = (int)strlen(szFuncName);
-  INT nPos = 0;
+  int nPos = 0;
 
   for (int i = 0; i < nlen - 2; i++) {
     if (szFuncName[i] == ':' && szFuncName[i + 1] == ':') {

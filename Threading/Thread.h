@@ -181,7 +181,7 @@ class ThreadPool {
 
   template <typename R>
   R Invoke(const std::function<R()>& func) {
-    Thread* pCurrThread = GetCurrentThread();
+    Thread* pCurrThread = Thread::GetCurrentThread();
     if (pCurrThread == nullptr || pCurrThread->mPool == this) return func();
     R res;
     ThreadEvent ev(false);

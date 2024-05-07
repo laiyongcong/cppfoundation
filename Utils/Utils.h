@@ -22,5 +22,10 @@ class Utils {
   static void MkDirs(const String& strPath);
   static int GetProcessID();
   static void FindFiles(const String& strPattern, bool bRecursive, std::vector<String>* pFileList);
+  FORCEINLINE static char* StrDup(const char* szInput) {
+    char* szRes = NULL;
+    if (szInput && (szRes = (char*)malloc(strlen(szInput) + 1))) strcpy(szRes, szInput);
+    return szRes;
+  }
 };
 }

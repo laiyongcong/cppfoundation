@@ -65,7 +65,7 @@ int _findnext(intptr_t id, struct _finddata_t* data) {
 
   if (fs->curfn) free(fs->curfn);
 
-  data->name = fs->curfn = SimCloud::StrDup(entry->d_name);
+  data->name = fs->curfn = cppfd::Utils::StrDup(entry->d_name);
 
   size_t namelen = strlen(entry->d_name);
   char* xfn = new char[fs->dirlen + 1 + namelen + 1];
@@ -127,7 +127,7 @@ intptr_t _findfirst(const char* pattern, struct _finddata_t* data) {
     fs->directory[fs->dirlen] = 0;
   } else {
     mask = pattern;
-    fs->directory = SimCloud::StrDup(".");
+    fs->directory = cppfd::Utils::StrDup(".");
     fs->dirlen = 1;
   }
 
@@ -142,7 +142,7 @@ intptr_t _findfirst(const char* pattern, struct _finddata_t* data) {
   /* Hack for "*.*" -> "*' from DOS/Windows */
   if (strcmp(mask, "*.*") == 0) mask += 2;
 
-  fs->pattern = SimCloud::StrDup(mask);
+  fs->pattern = cppfd::Utils::StrDup(mask);
 
   /* Get the first entry */
   if (_findnext((intptr_t)fs, data) < 0) {
