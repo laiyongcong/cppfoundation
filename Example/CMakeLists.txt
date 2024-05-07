@@ -4,7 +4,10 @@ project(Example)
 
 include(Example.cmake)
 
-include_directories(${CMAKE_INSTALL_PREFIX}/include/)
+foreach(_dir ${cppfoundation_Local_Include_Dirs})
+include_directories("../${_dir}")
+endforeach()
+
 include_directories(${${PROJECT_NAME}_Local_Include_Dirs})
 
 FILE(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/Generated/Reflection.generated.cpp "")
@@ -15,7 +18,7 @@ source_group(Generated\ Files
 	${Generated_Sources}
 )
 
-list(APPEND ${PROJECT_NAME}_All_Sources ${Generated_Sources})
+list(APPEND ${PROJECT_NAME}_All_Sources ${Generated_Sources} ${cppfoundation_All_Sources})
 
 add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_All_Sources})
 
@@ -25,13 +28,10 @@ if(UNIX)
 	target_link_libraries(${PROJECT_NAME} "-Wl,--start-group")
 endif()
 
-if(WIN32)
-	target_link_libraries(${PROJECT_NAME} 
-		optimized ${CMAKE_INSTALL_PREFIX}/lib/cppfoundation.lib
-		debug ${CMAKE_INSTALL_PREFIX}/lib/cppfoundationd.lib)
+if(UNIX)
+    target_link_libraries(${PROJECT_NAME} pthread)
 else()
-	target_link_libraries(${PROJECT_NAME} ${CMAKE_INSTALL_PREFIX}/lib/cppfoundation.a)
-endif()
+endif(UNIX)
 
 if(UNIX)
 	target_link_libraries(${PROJECT_NAME} "-Wl,--end-group")

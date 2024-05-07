@@ -20,7 +20,7 @@ void ThreadTest() {
   c3.Start("c3");
   pool.Start("pool");
   pool.BroadCast([]() { std::cout << "hello world! im " << Thread::GetCurrentThread()->GetName() << std::endl; });
-  std::atomic_int gVal = 0;
+  std::atomic_int gVal(0);
 
   p1.Post([&]() {
     int i = 0;
@@ -120,7 +120,7 @@ void TestLog() {
   Log::Destroy();
 }
 
-void main(int argc, char** argv) {
+int main(int argc, char** argv) {
   TestLog();
 
   uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
@@ -292,4 +292,6 @@ void main(int argc, char** argv) {
   std::cout << strJson << std::endl;
 
   JsonBase::FromJsonString(&testObjMap2, strJson);
+
+  return 0;
 }
