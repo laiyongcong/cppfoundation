@@ -432,7 +432,7 @@ class TabFile {
     for (size_t i = 0; i < fieldList.size(); i++) {
       const Field* pf = fieldList[i];
       if (FieldsMap.find(pf->GetName()) == FieldsMap.end()) {
-        LOG_WARNING("Unknown initialization mode of field:%s in struct:%s, tabfile:%s\n", pf->GetName(), typeid(T).name(), szFileName);
+        LOG_WARNING("Unknown initialization mode of field:%s in struct:%s, tabfile:%s\n", pf->GetName(), Demangle(typeid(T).name()).c_str(), szFileName);
       }
     }
 
@@ -452,7 +452,7 @@ class TabFile {
         const Field* f = FieldsMap[vFieldName[i]];
         if (f == nullptr) continue;
         if(!Str2ObjField(vRet[i], &tItem, *f)) {
-          LOG_WARNING("Read TabFile:%s Row:%d, Col:%lu, name:%s failed", szFileName, nRowIdx, i, f->GetName());
+          LOG_WARNING("Read TabFile:%s Row:%d, Col:%u, name:%s failed", szFileName, nRowIdx, (uint32_t)i, f->GetName());
           continue;
         }
       }
