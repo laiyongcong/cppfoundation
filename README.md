@@ -156,7 +156,7 @@ bool JsonBase::IsBuildInType(const std::type_info& tinfo) {
 日志系统可以设置日志的保留时间，单位为天。
 
 ## 类csv文件的读写
-具体实现见Utils/TabFile.h， csv文件的读写依赖于反射，文件的首行是被反射对象的字段列表，文件中可以增加注释行，需要以“#”开头,其中Delim一般为“\t”或者“,”，其主要结构如下：
+具体实现见Utils/TabFile.h， csv文件的读写依赖于反射，文件的首行是被反射对象的字段列表，文件中可以增加注释行(需要以“#”开头),TabFile中的Delim一般为“\t”或者“,”，T需要是被反射过的类型，其主要结构如下：
 ```
 template <typename T, const char Delim>
 class TabFile {
