@@ -37,7 +37,7 @@ static const ReflectiveClass<RefExample> g_refRefExample = ReflectiveClass<RefEx
 ```
 在业务代码中，可以通过反射代码，访问对象的成员变量，或者调用其方法
 ```
-const Class* pClass = Class::GetClassByType(typeid(RefExample));
+const Class* pClass = Class::GetClass(typeid(RefExample));
 const Field* pField = pClass->GetField("IntVal");
 const Method* pMethod = pClass->GetMethod(TestMethod);
 
