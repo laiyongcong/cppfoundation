@@ -47,6 +47,8 @@ int nValue = 0;
 pField->Get(&example, nValue);
 pMethod->Invoke(10, 20);
 ```
+关于容器部分的支持，见后面介绍的JsonArray和JsonMap。
+
 ## 使用CMake结合反射工具，在适当时机生成反射代码
 ```
 #收集工程所有目录
