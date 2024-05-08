@@ -5,6 +5,7 @@ namespace cppfd {
 
 static const ReflectiveClass<JsonBase> gRefJsonBase = ReflectiveClass<JsonBase>("JsonBase");
 static const ReflectiveClass<JsonArray<int8_t> > gRefInt8Arr = ReflectiveClass<JsonArray<int8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonArray<char> > gRefCharArr = ReflectiveClass<JsonArray<char> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonArray<uint8_t> > gRefUInt8Arr = ReflectiveClass<JsonArray<uint8_t> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonArray<int16_t> > gRefInt16Arr = ReflectiveClass<JsonArray<int16_t> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonArray<uint16_t> > gRefUInt16Arr = ReflectiveClass<JsonArray<uint16_t> >((JsonBase*)nullptr);
@@ -17,6 +18,7 @@ static const ReflectiveClass<JsonArray<float> > gRefFloatArr = ReflectiveClass<J
 static const ReflectiveClass<JsonArray<double> > gRefDoubleArr = ReflectiveClass<JsonArray<double> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonArray<String> > gRefStringArr = ReflectiveClass<JsonArray<String> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonMap<int8_t> > gRefInt8Map = ReflectiveClass<JsonMap<int8_t> >((JsonBase*)nullptr);
+static const ReflectiveClass<JsonMap<char> > gRefCharMap = ReflectiveClass<JsonMap<char> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonMap<uint8_t> > gRefUInt8Map = ReflectiveClass<JsonMap<uint8_t> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonMap<int16_t> > gRefInt16Map = ReflectiveClass<JsonMap<int16_t> >((JsonBase*)nullptr);
 static const ReflectiveClass<JsonMap<uint16_t> > gRefUInt16Map = ReflectiveClass<JsonMap<uint16_t> >((JsonBase*)nullptr);
@@ -361,7 +363,7 @@ int MyTravelJsonBuff(const char** szJson, JsonTraveler& traveler) {
 }
 
 bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint32_t nCount, const char* szContent, uint32_t nContentLen) {
-  if ((tinfo == typeid(char) || tinfo == typeid(signed char))) {
+  if ((tinfo == typeid(char) || tinfo == typeid(int8_t))) {
     if (nCount == 1) {
       int nVal = atoi(szContent);
       *(char*)pDataAddr = (char)nVal;
@@ -379,20 +381,16 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
       std::string& strRes = *(std::string*)pDataAddr;
       Utils::StringUnExcape(String(szContent, nContentLen), strRes);
     }
-  }
-  else if (tinfo == typeid(int16_t)) {
+  } else if (tinfo == typeid(int16_t)) {
     int16_t nVal = atoi(szContent);
     *(int16_t*)pDataAddr = (int16_t)nVal;
-  }
-  else if (tinfo == typeid(int32_t)) {
+  } else if (tinfo == typeid(int32_t)) {
     int32_t nVal = atoi(szContent);
     *(int32_t*)pDataAddr = nVal;
-  }
-  else if (tinfo == typeid(int64_t)) {
+  } else if (tinfo == typeid(int64_t)) {
     int64_t nVal = (int64_t)atoll(szContent);
     *(int64_t*)pDataAddr = nVal;
-  }
-  else if (tinfo == typeid(uint8_t)) {
+  } else if (tinfo == typeid(uint8_t)) {
     uint8_t uVal = (uint8_t)atoi(szContent);
     *(uint8_t*)pDataAddr = (uint8_t)uVal;
   }
