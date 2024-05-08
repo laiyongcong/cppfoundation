@@ -74,7 +74,7 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
      : MethodBase(pClass, accessType, szType, szName, szArgs, cb), mIsVirtual(bVirtual) {}
 
  void StaticMethod::Invoke() const {
-   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+   //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
    typedef const StaticCallable<void> CallableType;
    CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
    if (cb) {
@@ -180,6 +180,7 @@ bool Class::IsCastable(const std::type_info& from_cls, const std::type_info& to_
 
    if (ConstCastableTest<void*>(from_cls, to_cls) 
        || ConstCastableTest<int8_t>(from_cls, to_cls) 
+       || ConstCastableTest<char>(from_cls, to_cls) 
        || ConstCastableTest<uint8_t>(from_cls, to_cls) 
        || ConstCastableTest<int16_t>(from_cls, to_cls)
        || ConstCastableTest<uint16_t>(from_cls, to_cls) 

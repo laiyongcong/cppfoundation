@@ -361,7 +361,7 @@ class StaticField : public MemberBase {
 
    template <typename Object, typename Value>
    void GetByIdx(Value& result, int idx = 0) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
     if (typeid(Value) != mElementType) throw TypeMismatchError("value");
     if (idx < 0 || idx >= mElementCount) throw IllegalAccessError("idx");
     result = *((Value*)mAddr + idx);
@@ -369,7 +369,7 @@ class StaticField : public MemberBase {
 
    template <typename Object, typename Value>
    void SetByIdx(const Value& value, int idx = 0) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
     if (typeid(Value) != mElementType) throw TypeMismatchError("value");
     if (idx < 0 || idx >= mElementCount) throw IllegalAccessError("idx");
     *((Value*)mAddr + idx) = value;
@@ -628,7 +628,7 @@ class Class {
       const ConstructorMethod& method = **it;
       if (ArgsSame(argsList, method.GetArgsTypeList())) {
         NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
-        if (newCb && method.GetAccessType() == AccessPublic) {
+        if (newCb /*&& method.GetAccessType() == AccessPublic*/) {
           return newCb->invoke(args...);
         }
       }
@@ -643,7 +643,7 @@ class Class {
       const ConstructorMethod& method = **it;
       if (method.GetArgsCount() == 0) {
         NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
-        if (newCb && method.GetAccessType() == AccessPublic) {
+        if (newCb /*&& method.GetAccessType() == AccessPublic*/) {
           return newCb->invoke();
         }
       }
@@ -660,7 +660,7 @@ class Class {
       const ConstructorMethod& method = **it;
       if (method.mPlacementCallable.get() && ArgsSame(argsList, method.GetArgsTypeList())) {
         AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
-        if (allocaCb && method.GetAccessType() == AccessPublic) {
+        if (allocaCb /*&& method.GetAccessType() == AccessPublic*/) {
           return method.Alloca<R*>(ptr, args...);
         }
       }
@@ -675,7 +675,7 @@ class Class {
       const ConstructorMethod& method = **it;
       if (method.mPlacementCallable.get() && method.mPlacementCallable->GetArgsCount() == 1) {
         AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
-        if (allocaCb && method.GetAccessType() == AccessPublic) {
+        if (allocaCb /*&& method.GetAccessType() == AccessPublic*/) {
           return method.Alloca<R*>(ptr);
         }
       }
@@ -722,7 +722,7 @@ void Field::GetPtr(const Object* object, Value*& result) const {
 
 template <typename Object, typename Value>
 void Field::GetByIdx(const Object* pObj, Value& result, int idx/* = 0*/) const {
-   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
    const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
@@ -732,7 +732,7 @@ void Field::GetByIdx(const Object* pObj, Value& result, int idx/* = 0*/) const {
 
 template <typename Object, typename Value>
 void Field::GetPtrByIdx(const Object* pObj, Value*& result, int idx /*= 0*/) const {
-   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
    const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid result type");
@@ -747,7 +747,7 @@ void Field::Set(Object* object, const Value& value) const {
 
 template <typename Object, typename Value>
 void Field::SetByIdx(Object* object, const Value& value, int idx/* = 0*/) const {
-   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
+   //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetName());
    const Class* pClass = Class::GetClass(typeid(Object));
    if (pClass == nullptr || !GetClass().IsSameOrSuperOf(*pClass)) throw TypeMismatchError("invalid object type");
    if (typeid(Value) != mElementType) throw TypeMismatchError("invalid value type");
@@ -807,7 +807,7 @@ bool MethodBase::TestCompatible(const std::type_info& retType, const std::type_i
 
 template <typename R, typename C, typename... Args>
 R Method::Invoke(C* object, Args... args) const {
-   if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+   //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
    typedef const MemberFuncCallable<R, C, Args...> CallableType;
    typedef const ConstMemberFuncCallable<R, C, Args...> ConstCallableType;
    CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
@@ -827,7 +827,7 @@ R Method::Invoke(C* object, Args... args) const {
 
 template <typename R, typename C>
 R Method::Invoke(C* object) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const MemberFuncCallable<R, C> CallableType;
     typedef const ConstMemberFuncCallable<R, C> ConstCallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
@@ -847,7 +847,7 @@ R Method::Invoke(C* object) const {
 
 template <typename C, typename... Args>
 void Method::Invoke(C* object, Args... args) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const MemberFuncCallable<void, C, Args...> CallableType;
     typedef const ConstMemberFuncCallable<void, C, Args...> ConstCallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
@@ -870,7 +870,7 @@ void Method::Invoke(C* object, Args... args) const {
 
 template <typename C>
 void Method::Invoke(C* object) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const MemberFuncCallable<void, C> CallableType;
     typedef const ConstMemberFuncCallable<void, C> ConstCallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
@@ -893,7 +893,7 @@ void Method::Invoke(C* object) const {
 
 template <typename R, typename... Args>
 R StaticMethod::Invoke(Args... args) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const StaticCallable<R, Args...> CallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
@@ -908,7 +908,7 @@ R StaticMethod::Invoke(Args... args) const {
 
 template <typename R>
 R StaticMethod::Invoke() const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const StaticCallable<R> CallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
@@ -923,7 +923,7 @@ R StaticMethod::Invoke() const {
 
 template <typename... Args>
 void StaticMethod::Invoke(Args... args) const {
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef const StaticCallable<void, Args...> CallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mCallable.get());
     if (cb) {
@@ -941,7 +941,7 @@ void StaticMethod::Invoke(Args... args) const {
 template <typename R, typename... Args>
 R ConstructorMethod::Alloca(void* ptr, Args... args) const {
     if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+   // if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef StaticCallable<R, void*, Args...> CallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
     if (cb) {
@@ -957,7 +957,7 @@ R ConstructorMethod::Alloca(void* ptr, Args... args) const {
 template <typename R>
 R ConstructorMethod::Alloca(void* ptr) const {
     if (mPlacementCallable == 0) throw UnknownMethodError("placement constructor");
-    if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
+    //if (GetAccessType() != AccessPublic) throw IllegalAccessError(GetIdentity());
     typedef StaticCallable<R, void*> CallableType;
     CallableType* cb = dynamic_cast<CallableType*>(mPlacementCallable.get());
     if (cb) {

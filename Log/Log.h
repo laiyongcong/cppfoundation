@@ -68,7 +68,7 @@ class Log {
       }                                                                                                                                                                       \
     } while (0)
 
-#  define LOG_TRACE(fmt, ...)                                                                                                                                               \
+#  define LOG_TRACE(fmt, ...)                                                                                                                                                \
     do {                                                                                                                                                                     \
       if (cppfd::Log::IsValid()) {                                                                                                                                           \
         cppfd::Log::WriteLog(cppfd::ELogLevel_Info, "[%s:%d][fun:%s]" fmt, cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), __VA_ARGS__); \
@@ -77,7 +77,7 @@ class Log {
       }                                                                                                                                                                      \
     } while (0)
 
-#  define LOG_DEBUG(fmt, ...)                                                                                                                                                \
+#  define LOG_DEBUG(fmt, ...)                                                                                                                                                 \
     do {                                                                                                                                                                      \
       if (cppfd::Log::IsValid()) {                                                                                                                                            \
         cppfd::Log::WriteLog(cppfd::ELogLevel_Debug, "[%s:%d][fun:%s]" fmt, cppfd::Log::GetFileName(__FILE__), __LINE__, cppfd::Log::GetFuncName(__FUNCTION__), __VA_ARGS__); \
