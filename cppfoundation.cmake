@@ -22,6 +22,12 @@ source_group(Threading\ Files
 	${Threading_Files_Sources}
 )
 
+FILE(GLOB Network_Files_Sources "Network/*.*")
+source_group(Network\ Files
+	FILES
+	${Network_Files_Sources}
+)
+
 FILE(GLOB Log_Files_Sources "Log/*.*")
 source_group(Log\ Files
 	FILES
@@ -48,6 +54,7 @@ set(${PROJECT_NAME}_All_Sources
 	${Utils_Files_Sources}
 	${Fasterjson_Files_Sources}
 	${Log_Files_Sources}
+	${Network_Files_Sources}
 )
 set(${PROJECT_NAME}_Local_Include_Dirs
 	./
@@ -56,4 +63,5 @@ set(${PROJECT_NAME}_Local_Include_Dirs
 	Utils
 	Fasterjson
 	Log
+	Network
 )
