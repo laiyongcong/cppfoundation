@@ -137,7 +137,10 @@ class LogImp : public Thread {
     }
   }
 
-  void WriteLog(const LogItem& logItem) { mLogQueue.Enqueue(logItem); }
+  void WriteLog(const LogItem& logItem) { 
+    if (logItem.mLogLevel <= mCfg.LogLevel)
+      mLogQueue.Enqueue(logItem); 
+  }
 
  private:
   LogConfig mCfg;
