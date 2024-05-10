@@ -630,6 +630,9 @@ class Class {
         NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
         if (newCb /*&& method.GetAccessType() == AccessPublic*/) {
           return newCb->invoke(args...);
+        } else if (IsCastable(mType, typeid(R))) {
+          newCb = (NewInstanceCallable*)(method.mCallable.get());
+          return newCb->invoke(args...);
         }
       }
     }
@@ -644,6 +647,9 @@ class Class {
       if (method.GetArgsCount() == 0) {
         NewInstanceCallable* newCb = dynamic_cast<NewInstanceCallable*>(method.mCallable.get());
         if (newCb /*&& method.GetAccessType() == AccessPublic*/) {
+          return newCb->invoke();
+        } else if (IsCastable(mType, typeid(R))) {
+          newCb = (NewInstanceCallable*)(method.mCallable.get());
           return newCb->invoke();
         }
       }
@@ -662,6 +668,9 @@ class Class {
         AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
         if (allocaCb /*&& method.GetAccessType() == AccessPublic*/) {
           return method.Alloca<R*>(ptr, args...);
+        } else if (IsCastable(mType, typeid(R))) {
+          allocaCb = (AllocaInstanceCallable*)(method.mPlacementCallable.get());
+          return method.Alloca<R*>(ptr, args...);
         }
       }
     }
@@ -676,6 +685,9 @@ class Class {
       if (method.mPlacementCallable.get() && method.mPlacementCallable->GetArgsCount() == 1) {
         AllocaInstanceCallable* allocaCb = dynamic_cast<AllocaInstanceCallable*>(method.mPlacementCallable.get());
         if (allocaCb /*&& method.GetAccessType() == AccessPublic*/) {
+          return method.Alloca<R*>(ptr);
+        } else if (IsCastable(mType, typeid(R))) {
+          allocaCb = (AllocaInstanceCallable*)(method.mPlacementCallable.get());
           return method.Alloca<R*>(ptr);
         }
       }

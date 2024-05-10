@@ -151,6 +151,11 @@ int main(int argc, char** argv) {
     pConstructorTest = nullptr;
     std::cout << "new instance test ok" << std::endl;
   }
+
+  TestClass* pParentClassPtr = pTestSubClass->NewInstance<TestClass>();
+  if (pParentClassPtr) {
+    pParentClassPtr->VirtualFunc();
+  }
   
   TestClass* pCon2 = pTestClass->NewInstance<TestClass, int, const std::string&>(1, "aaa");
   if (pCon2)
