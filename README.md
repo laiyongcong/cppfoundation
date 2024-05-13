@@ -7,7 +7,7 @@ cppfoundation是一个c++基础库，这部分代码曾经在某游戏项目中�
 * 基于c++反射的csv文件读取（已完成，也可以实现yaml文件读取，依赖于yaml-cpp）
 * 线程框架（已完成）
 * 日志系统（已完成）
-* 网络通信框架（计划中）
+* 网络通信框架（已完成）
 
 # C++反射（reflection）
 ## 反射工具
@@ -170,3 +170,89 @@ class TabFile {
   ...
 };
 ```
+
+# 简单高效的TCP网络库
+网络库基于无锁线程框架搭建，并结合了反射的能力，可以十分简便地搭建一个网络服务，Network目录下包含关于网络的基本实现（windows下使用select模拟epoll）。
+
+我们在头文件中定义我们的消息处理函数
+```
+class ServerMsg {
+ public:
+  MSG_HANDLER_FUNC(Ping);
+};
+
+class ClientMsg {
+ public:
+  MSG_HANDLER_FUNC(Pong);
+};
+```
+在cpp中我进行具体的实现：
+```
+int ServerMsg::Ping(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
+  LOG_TRACE("Recv Ping from %s msg:%s", pConn->Info().c_str(), szBuff);
+  pConn->Send("Pong", szBuff, uBuffLen);
+  return 0;
+}
+
+int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
+  LOG_TRACE("Recv Pong from %s msg:%s", pConn->Info().c_str(), szBuff);
+  static String strMsg = "Hello Client!!!!!!!";
+  pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size());
+  return 0;
+}
+```
+其中TcpEngine是一个多线程网络处理引擎（支持ipv6，未测试），其中线程包含网络线程和工作线程，网络线程只进行网络消息的收发，而工作线程则负责消息的处理。
+```
+//分别是网络线程数量、工作线程数量、解包器（支持自定义包头）、消息处理类、绑定端口（客户端模式填-1）、绑定地址
+TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
+```
+
+我们实现一个ping-pong通信，需要客户端链接创建时发起pin操作，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
+```
+class TestClient : public TcpEngine {
+ public:
+  TestClient(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
+  : TcpEngine(uNetThreadNum, uWorkerThreadNum, pDecoder, tMsgClass, -1){}
+
+  void OnConnecterCreate(Connecter* pConn) override { 
+    TcpEngine::OnConnecterCreate(pConn);
+    String strMsg = "Hello Server!!!!!!!";
+    pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size()); 
+  }
+};
+```
+以下测试函数创建10个链接进行ping-pong测试：
+```
+void NetTest() {
+  SockInitor initor;
+  LogConfig cfg;
+  cfg.ProcessName = "testLog";
+  cfg.LogLevel = ELogLevel_Debug;
+  Log::Init(cfg);
+  TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
+  TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  testServer.Start();
+  testClient.Start();
+
+  int nTimeout = 10000000;
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+
+  int nCounter = 0;
+  while (nCounter < 100)
+  {
+    Thread::Milisleep(1000);
+    nCounter++;
+  }
+  Log::Destroy();
+}
+```
+

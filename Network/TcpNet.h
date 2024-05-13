@@ -59,6 +59,9 @@ class TcpEngine : public NonCopyable {
   virtual void OnConnecterCreate(Connecter* pConn);                  // 被connecter的worker线程调用，
   virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被connecter的worker线程调用，
   virtual int OnRecvMsg(Connecter* pConn, Pack* pPack); // 被connecter的worker线程调用
+ private:
+  NetThread* AllocateNetThread();
+  ConnecterWorkerThread* AllocateWorker();
  protected:
   uint32_t mNetThreadNum;
   uint32_t mWorkerNum;

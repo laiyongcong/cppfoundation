@@ -170,7 +170,6 @@ class NetThread : public Thread {
     String strErr;
     int nErrCode;
     char ipStr[INET6_ADDRSTRLEN];
-    TcpEngine* pEngine = GetEngine();
     while (1) {
       socklen_t addrLen = sizeof(addr);
       SOCKET sock = ::accept(mListenFd, (struct sockaddr*)&addr, &addrLen);
@@ -195,7 +194,6 @@ class NetThread : public Thread {
         return;
       }
       pConn->mSock = sock;
-      pConn->mNetThread = this;
 
       if (addr.ss_family == AF_INET) {
         inet_ntop(AF_INET, &(((struct sockaddr_in*)&addr)->sin_addr), ipStr, sizeof(ipStr));
@@ -206,7 +204,7 @@ class NetThread : public Thread {
       }
       LOG_DEBUG("%s accepted", pConn->Info().c_str());
       pConn->mPeerIp = ipStr;
-      ConnecterWorkerThread* pWorker = AllocateWorker();
+      ConnecterWorkerThread* pWorker = mEngine->AllocateWorker();
       if (pWorker == nullptr)
       {
         LOG_ERROR("Allocate for %s failed", pConn->Info().c_str());
@@ -214,24 +212,19 @@ class NetThread : public Thread {
         continue;
       }
       pConn->mWorker = pWorker;
-      pConn->mIO->mDecoder = pEngine->mDecoder;
-      pConn->mIO->mSendCryptoFunc = pEngine->mSendCryptoFunc;
-      pConn->mIO->mSendCryptoSeed = pEngine->mSendCryptoSeed;
-      pConn->mIO->mRecvCryptoFunc = pEngine->mRecvCryptoFunc;
-      pConn->mIO->mRecvCryptoSeed = pEngine->mRecvCryptoSeed;
+      pConn->mIO->mDecoder = mEngine->mDecoder;
+      pConn->mIO->mSendCryptoFunc = mEngine->mSendCryptoFunc;
+      pConn->mIO->mSendCryptoSeed = mEngine->mSendCryptoSeed;
+      pConn->mIO->mRecvCryptoFunc = mEngine->mRecvCryptoFunc;
+      pConn->mIO->mRecvCryptoSeed = mEngine->mRecvCryptoSeed;
 
       pWorker->Post([=]() {
         pWorker->AddConnecter(pConn);
         mEngine->OnConnecterCreate(pConn);
       });
-      pConn->mIO->mEpFlag = EPOLLIN;
-      pConn->mIO->mRecvingHeader.reset(new PackImp(pEngine->mDecoder->GetHeaderSize(), pEngine->mDecoder));
-      epoll_event ev;
-      ev.data.ptr = pConn;
-      ev.events = EPOLLIN | EPOLLET;
-      epoll_ctl(mEpfd, EPOLL_CTL_ADD, pConn->mSock, &ev);
-      mConnectersMap.insert(pConn);
-      mConnecterCount++;
+
+      pConn->mNetThread = mEngine->AllocateNetThread();
+      pConn->mNetThread->AddClientConnecter(pConn);
     }
   }
 
@@ -394,25 +387,12 @@ class NetThread : public Thread {
 
   FORCEINLINE TcpEngine* GetEngine() const { return mEngine;}
 
-  ConnecterWorkerThread* AllocateWorker() const {
+  FORCEINLINE ConnecterWorkerThread* AllocateWorker() const {
     if (mEngine == nullptr) {
       LOG_ERROR("Server is null");
       return nullptr;
     }
-    static std::atomic_uint sAllocaIdx(0);
-    uint32_t uAllocaIdx = sAllocaIdx++;
-    uint32_t uNum = mEngine->mWorkerNum;
-    uint32_t uMin = UINT_MAX;
-    uint32_t nIdx = UINT_MAX;
-    for (uint32_t i = 0; i < uNum; i++) {
-      uint32_t uConnNum = mEngine->mWorkerThreads[(i + uAllocaIdx) % uNum].GetConnecterNum();
-      if (uConnNum < uMin) {
-        uMin = uConnNum;
-        nIdx = i;
-      }
-    }
-    if (nIdx == UINT_MAX) return nullptr;
-    return &(mEngine->mWorkerThreads[nIdx]);
+    return mEngine->AllocateWorker();
   }
 
   FORCEINLINE bool IsMyConnecter(Connecter* pConn) { return mConnectersMap.find(pConn) != mConnectersMap.end();}
@@ -490,6 +470,11 @@ TcpEngine::TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetD
  }
 
 void TcpEngine::SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto) { 
+  if (mNetThreadNum == 0) return;
+  if (mNetThreads[0].IsRunning()) {
+    LOG_ERROR("Engine is running, set crypto failed");
+    return;
+  }
   mSendCryptoSeed = uSendCrypto;
   mRecvCryptoSeed = uRecvCrypto;
   mSendCryptoFunc = SendCryptoFunc;
@@ -552,7 +537,8 @@ int TcpEngine::OnRecvMsg(Connecter* pConn, Pack* pPack) {
   return pMethod->Invoke<int, Connecter*, const char*, uint32_t>(pConn, pBuff + uHeaderSize, pPack->GetDataLen() - uHeaderSize);
 }
 
-bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /*= true*/, uint32_t uLinger /*= 0*/, int nClientPort /* = 0*/) {
+
+cppfd::NetThread* TcpEngine::AllocateNetThread() {
   uint32_t uMin = UINT_MAX;
   uint32_t nIdx = UINT_MAX;
   for (uint32_t i = 0; i < mNetThreadNum; i++) {
@@ -563,6 +549,33 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
   }
   if (nIdx == UINT_MAX) {
     LOG_ERROR("Allocate NetThreadFailed");
+    return nullptr;
+  }
+
+  return &(mNetThreads[nIdx]);
+}
+
+
+cppfd::ConnecterWorkerThread* TcpEngine::AllocateWorker() {
+  static std::atomic_uint sAllocaIdx(0);
+  uint32_t uAllocaIdx = sAllocaIdx++;
+  uint32_t uNum = mWorkerNum;
+  uint32_t uMin = UINT_MAX;
+  uint32_t nIdx = UINT_MAX;
+  for (uint32_t i = 0; i < uNum; i++) {
+    uint32_t uConnNum = mWorkerThreads[(i + uAllocaIdx) % uNum].GetConnecterNum();
+    if (uConnNum < uMin) {
+      uMin = uConnNum;
+      nIdx = i;
+    }
+  }
+  if (nIdx == UINT_MAX) return nullptr;
+  return &(mWorkerThreads[nIdx]);
+}
+
+bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /*= true*/, uint32_t uLinger /*= 0*/, int nClientPort /* = 0*/) {
+  NetThread* pNetThread = AllocateNetThread();
+  if (pNetThread == nullptr) {
     return false;
   }
 
@@ -581,10 +594,10 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
     return false;
   }
   pConn->mSock = sock;
-  pConn->mNetThread = &mNetThreads[nIdx];
+  pConn->mNetThread = pNetThread;
   SocketAPI::GetPeerIpPort(sock, pConn->mPeerIp, pConn->mPeerPort);
 
-  ConnecterWorkerThread* pWorker = mNetThreads[nIdx].AllocateWorker();
+  ConnecterWorkerThread* pWorker = AllocateWorker();
   if (pWorker == nullptr) {
     LOG_ERROR("Allocate for %s failed", pConn->Info().c_str());
     SAFE_DELETE(pConn);
@@ -601,7 +614,7 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
     pWorker->AddConnecter(pConn);
     OnConnecterCreate(pConn);
   });
-  mNetThreads[nIdx].AddClientConnecter(pConn);
+  pNetThread->AddClientConnecter(pConn);
   return true;
 }
 
