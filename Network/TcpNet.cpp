@@ -841,4 +841,18 @@ int TcpClient::Write(SOCKET sock, void* szBuf, int len, int* pMicroTimeout) {
   return len - nLeft;
 }
 
+uint8_t DefaultNetCryptoFunc(uint64_t& ulSeed) {
+  uint32_t x = (uint32_t)(ulSeed >> 32);
+  uint32_t y = (uint32_t)(ulSeed & 0xFFFFFFFF);
+
+  x = 99069 * x + 12345;
+  y ^= (y << 13);
+  y ^= (y >> 17);
+  y ^= (y << 5);
+
+  ulSeed = x;
+  ulSeed = (ulSeed << 32) | y;
+  return (x + y) % 256;
+}
+
 }  // namespace cppfd

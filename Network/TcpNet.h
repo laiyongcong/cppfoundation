@@ -13,6 +13,8 @@ struct NetIOInfo;
 
 typedef uint8_t (*NetCryptoFunc)(uint64_t&);  //网络字节混淆函数指针
 
+extern uint8_t DefaultNetCryptoFunc(uint64_t& ulSeed);
+
 #define MSG_HANDLER_FUNC(FUNC) REF_EXPORT static int FUNC(cppfd::Connecter* pConn, const char* szBuff, uint32_t uBuffLen)
 
 struct Pack {

@@ -41,6 +41,9 @@ void NetTest() {
   Log::Init(cfg);
   TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
   TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  testServer.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
+  testClient.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
+
   testServer.Start();
   testClient.Start();
 
