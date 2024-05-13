@@ -1,4 +1,5 @@
 #include "Utils.h"
+#include "Log.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 #  include <windows.h>
 #include <Psapi.h>
@@ -368,7 +369,7 @@ int Utils::GetTimeOfDay(struct timeval* tp, void* tzp) {
 #endif
 }
 
-uint64_t Utils::GetTimeMiliSec() {
+uint64_t Utils::GetCurrentTime() {
   timeval tv;
   if (GetTimeOfDay(&tv, nullptr) != 0) return 0;
   return ((uint64_t)tv.tv_usec) / 1000 + ((uint64_t)tv.tv_sec) * 1000;
@@ -472,6 +473,134 @@ void Utils::FindFiles(const String& strPattern, bool bRecursive, std::vector<Str
 
     _findclose(hFile);
   }
+}
+
+ WeakPtrArray::WeakPtrArray(uint32_t uCapacity) : mCapacity(uCapacity), mCount(0) {
+  if (mCapacity == 0) mCapacity = 1;
+   mItems = new Item*[mCapacity];
+   for (uint32_t i = 0; i < mCapacity; i++) {
+     mItems[i] = nullptr;
+   }
+ }
+
+ WeakPtrArray::~WeakPtrArray() { SAFE_DELETE_ARRAY(mItems);}
+
+bool WeakPtrArray::Add(Item* pItem) {
+  if (pItem == nullptr) return false;
+  if (mCount >= mCapacity) {
+    uint32_t uNewCap = mCapacity * 1.5;
+    if (uNewCap < mCapacity + 10) uNewCap = mCapacity + 10;
+    Resize(uNewCap);
+  }
+  if (pItem->mIdx != -1 || pItem->mArray != nullptr) return false;
+  pItem->mIdx = mCount++;
+  pItem->mArray = this;
+  mItems[pItem->mIdx] = pItem;
+  return true;
+ }
+
+bool WeakPtrArray::Del(Item* pItem) {
+  if (pItem == nullptr || pItem->mArray != this) return false;
+  if (pItem->mIdx < 0 || (uint32_t) pItem->mIdx >= mCount || mItems[pItem->mIdx] != pItem) {
+    LOG_ERROR("array or item may error");
+    return false;
+  }
+  int32_t nIdx = pItem->mIdx;
+  mItems[nIdx] = mItems[mCount - 1];
+  mItems[nIdx]->mIdx = nIdx;
+  mItems[mCount - 1] = nullptr;
+  mCount--;
+  pItem->mArray = nullptr;
+  return true;
+ }
+
+void WeakPtrArray::Clear() {
+  for (uint32_t i = 0; i < mCount; i++) {
+    mItems[i]->mIdx = -1;
+    mItems[i]->mArray = nullptr;
+    mItems[i] = nullptr;
+  }
+  mCount = 0;
+}
+
+void WeakPtrArray::Resize(uint32_t uNewCap) {
+  if (uNewCap <= mCapacity) return;
+  Item** pNewItems = new Item*[uNewCap];
+  uint32_t i = 0;
+  for (; i < mCapacity; i++) {
+    pNewItems[i] = mItems[i];
+  }
+  for (; i < uNewCap; i++)
+  {
+    pNewItems[i] = nullptr;
+  }
+  SAFE_DELETE_ARRAY(mItems);
+  mItems = pNewItems;
+  mCapacity = uNewCap;
+}
+
+FileWatcher::FileWatcher(const char* szFileFullPath) {
+  mFileFullPath = szFileFullPath;
+  MyStat(mFileFullPath.c_str(), &mStatbuf);
+}
+
+FileWatcher::FileWatcher(const char* szFileName, const char* szPath) {
+  mFileFullPath = "";
+  if (szPath) {
+    mFileFullPath = szPath;
+  }
+  mFileFullPath += szFileName;
+  MyStat(mFileFullPath.c_str(), &mStatbuf);
+}
+
+FileWatcher::FileWatcher() {
+  mFileFullPath = "";
+  ::memset(&mStatbuf, 0, sizeof(mStatbuf));
+}
+
+bool FileWatcher::IsFileChanged() const {
+  if (mFileFullPath == "") {
+    return false;
+  }
+  struct stat tmpStat;
+  if (MyStat(mFileFullPath.c_str(), &tmpStat) == false) {
+    return false;
+  }
+
+  return tmpStat.st_mtime != mStatbuf.st_mtime || tmpStat.st_size != mStatbuf.st_size;
+}
+
+void FileWatcher::Update() { MyStat(mFileFullPath.c_str(), &mStatbuf); }
+
+bool FileWatcher::Watch(const char* szFileFullPath) {
+  if (MyStat(szFileFullPath, &mStatbuf)) {
+    mFileFullPath = szFileFullPath;
+    return true;
+  }
+  return false;
+}
+
+bool FileWatcher::MyStat(const char* szFileName, struct stat* buf) {
+  if (szFileName == nullptr || szFileName[0] == 0) {
+    LOG_ERROR("empty filename");
+    return false;
+  }
+  int nRes = stat(szFileName, buf);
+  if (nRes != 0) {
+    switch (errno) {
+      case ENOENT:
+        // KLOG_WARNING("File %s not found.\n", szFileName);
+        break;
+      case EINVAL:
+        LOG_WARNING("Invalid parameter to _stat, file:%s.\n", szFileName);
+        break;
+      default:
+        LOG_WARNING("Unexpected error in _stat, file:%s.\n", szFileName);
+        break;
+    }
+    return false;
+  }
+  return true;
 }
 
 }  // namespace cppfd

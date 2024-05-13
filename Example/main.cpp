@@ -8,6 +8,62 @@
 
 using namespace cppfd;
 
+int ServerMsg::Ping(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
+  LOG_TRACE("Recv Ping from %s msg:%s", pConn->Info().c_str(), szBuff);
+  pConn->Send("Pong", szBuff, uBuffLen);
+  return 0;
+}
+
+int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
+  LOG_TRACE("Recv Pong from %s msg:%s", pConn->Info().c_str(), szBuff);
+  static String strMsg = "Hello Client!!!!!!!";
+  pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size());
+  return 0;
+}
+
+class TestClient : public TcpEngine {
+ public:
+  TestClient(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
+  : TcpEngine(uNetThreadNum, uWorkerThreadNum, pDecoder, tMsgClass, -1){}
+
+  void OnConnecterCreate(Connecter* pConn) override { 
+    TcpEngine::OnConnecterCreate(pConn);
+    String strMsg = "Hello Server!!!!!!!";
+    pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size()); 
+  }
+};
+
+void NetTest() {
+  SockInitor initor;
+  LogConfig cfg;
+  cfg.ProcessName = "testLog";
+  cfg.LogLevel = ELogLevel_Debug;
+  Log::Init(cfg);
+  TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
+  TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  testServer.Start();
+  testClient.Start();
+
+  int nTimeout = 10000000;
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+  testClient.Connect("127.0.0.1", 9100, &nTimeout);
+
+  int nCounter = 0;
+  while (nCounter < 100)
+  {
+    Thread::Milisleep(1000);
+    nCounter++;
+  }
+  Log::Destroy();
+}
 
 
 void ThreadTest() { 
@@ -112,16 +168,18 @@ void TestLog() {
   LogConfig cfg;
   cfg.ProcessName = "testLog";
   Log::Init(cfg);
-  uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();
+  uint64_t uTime1 = cppfd::Utils::GetCurrentTime();
   for (int i = 0; i < 100000; i++) {
     LOG_TRACE("this is test log %d", i);
   }
-  uint64_t uTime2 = cppfd::Utils::GetTimeMiliSec();
+  uint64_t uTime2 = cppfd::Utils::GetCurrentTime();
   std::cout << "log cost " << uTime2 - uTime1 << std::endl;
   Log::Destroy();
 }
 
 int main(int argc, char** argv) {
+
+    NetTest();
   /*TestLog();
 
   uint64_t uTime1 = cppfd::Utils::GetTimeMiliSec();

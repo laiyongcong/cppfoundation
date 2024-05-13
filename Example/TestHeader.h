@@ -1,5 +1,6 @@
 #pragma  once
 #include "Reflection.h"
+#include "TcpNet.h"
 
 class TestClass {
  public:
@@ -34,4 +35,14 @@ class TestSubClass : public TestClass {
   REF_EXPORT TestSubClass() { ::memset(mArray, 0, sizeof(mArray)); }
   REF_EXPORT int mArray[10];
   REF_EXPORT virtual void VirtualFunc() const override { std::cout << "virturl func in TestSubClass" << std::endl; }
+};
+
+class ServerMsg {
+ public:
+  MSG_HANDLER_FUNC(Ping);
+};
+
+class ClientMsg {
+ public:
+  MSG_HANDLER_FUNC(Pong);
 };

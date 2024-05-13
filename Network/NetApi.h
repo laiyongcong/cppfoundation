@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Prerequisites.h"
+#include "Log.h"
 /*
 * 由于对windows下的完成端口不太熟悉，因此在windows下使用select对epoll接口进行模拟。
 * 一般来说大家都不会使用windows系统作为服务器，所以问题不是太大，只是windows下编程会更方便一些
@@ -36,6 +37,10 @@ typedef union epoll_data {
 struct epoll_event {
   unsigned int events; /* Epoll events */
   epoll_data_t data;   /* User data variable */
+  epoll_event() {
+    events = 0;
+    data.ptr = nullptr;
+  }
 };
 
 typedef struct _epoll_fd {
@@ -49,7 +54,6 @@ typedef struct _epoll_fd {
 extern epoll_fd epoll_create(int nsize);
 extern int epoll_ctl(epoll_fd epfd, int op, SOCKET fd, epoll_event* event);
 extern int epoll_wait(epoll_fd epfd, struct epoll_event* events, int maxevents, int timeout);
-extern int close_epoll_fd(epoll_fd& fd);
 
 #else 
 #  include <sys/socket.h>
@@ -72,14 +76,14 @@ typedef int SOCKET;
 #  define SOCKET_ERROR -1
 #endif
 
+extern int close_epoll_fd(epoll_fd& fd);
+
 namespace cppfd {
 enum ESockErrorType { 
 	ESockErrorType_block = 0,
 	ESockErrorType_Eintr,
 	ESockErrorType_normal,
 };
-
-extern ESockErrorType GetSocketError(String& strErrMsg, int& nErrno);
 
 class SockInitor {
  public:
@@ -122,6 +126,7 @@ class SocketAPI {
     return true;
 #endif
   }
+  static ESockErrorType GetSocketError(String& strErrMsg, int& nErrno);
   FORCEINLINE static bool IsSocketError(SOCKET s) {
     int error;
     socklen_t len = (socklen_t)sizeof(error);
@@ -157,6 +162,19 @@ class SocketAPI {
     return setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char*)&nOn, (int)sizeof(nOn)) == 0;
   }
 
+  FORCEINLINE static bool SetSockPortReuse(SOCKET s, bool bOn) {
+#if CPPFD_PLATFORM != CPPFD_PLATFORM_WIN32
+#ifndef SO_REUSEPORT
+    return false;
+#else
+    int nOn = bOn ? 1 : 0;
+    return setsockopt(s, SOL_SOCKET, SO_REUSEPORT, (char*)&nOn, (int)sizeof(nOn)) == 0;
+#endif
+#else
+    return true;
+#endif
+  }
+
   FORCEINLINE static uint32_t GetLinger(SOCKET s) { 
     struct linger ling;
     socklen_t nLen = (socklen_t)sizeof(ling);
@@ -178,11 +196,49 @@ class SocketAPI {
   static bool GetPeerIpPort(SOCKET sock, String& strIp, int& nPort);
 };
 
-class TcpClient {
+#pragma pack(push, 1)
+struct NetHeader {
+  char mCmd[32];  // 函数
+  uint32_t mBodyLen;  // 包体长度,不包括包头
+};
+#pragma pack(pop)
+
+//保留用户自定义包头的能力
+class BaseNetDecoder {
  public:
-  static bool Connect(SOCKET& sock, const char* szHost, int nPort, int* pMicroTimeout, uint32_t uLinger = 0, int nClientPort = 0);
-  static int Read(SOCKET sock, void* szBuf, int len, int* pMicroTimeout);
-  static int Write(SOCKET sock, void* szBuf, int len, int* pMicroTimeout);
+  virtual ~BaseNetDecoder() {}
+  virtual uint32_t GetBodyLen(const void* pHeader) = 0;                       // 获取头长度字段
+  virtual bool SetBodyLen(void* pHeader, unsigned int bdlen) = 0;       // 设置body长度
+  virtual uint32_t GetHeaderSize() = 0;                                 // 获取头长度
+  virtual const String GetCmd(const void* pHeader) = 0;                      //获得包头的命令
+  virtual bool SetCmd(void* pHeader, const String& strCmd) = 0;         //设置包头的命令
 };
 
+#define MAX_PACK_LEN (64 * 1024 * 1024)  // 64M
+class NetDecoder : BaseNetDecoder {
+ public:
+  virtual uint32_t GetBodyLen(const void* pHeader) {
+    if (pHeader == nullptr) return 0;
+    return ntohl(((NetHeader*)pHeader)->mBodyLen);
+  }
+  virtual bool SetBodyLen(void* pHeader, uint32_t bdlen) {
+    if (pHeader == nullptr || bdlen > MAX_PACK_LEN - sizeof(NetHeader)) return false;
+    ((NetHeader*)pHeader)->mBodyLen = htonl(bdlen);
+    return true;
+  }
+  virtual uint32_t GetHeaderSize() { return (uint32_t)sizeof(NetHeader); }
+  virtual const String GetCmd(const void* pHeader) {
+    if (pHeader == nullptr) return "";
+    NetHeader* pH = (NetHeader*)pHeader;
+    pH->mCmd[sizeof(pH->mCmd) - 1] = 0; //截断保护
+    return pH->mCmd;
+  }
+  virtual bool SetCmd(void* pHeader, const String& strCmd) {
+    if (pHeader == nullptr) return false;
+    NetHeader* pH = (NetHeader*)pHeader;
+    safe_printf(pH->mCmd, sizeof(pH->mCmd), "%s", strCmd.c_str());
+    return true;
+  }
+};
+extern NetDecoder g_NetHeaderDecoder;
 }

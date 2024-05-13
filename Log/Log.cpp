@@ -76,7 +76,9 @@ class LogImp : public Thread {
           safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                       tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
         }
-        mStreamBuff[szFileName] << szLogPrefix << logItem.mLogMsg << std::endl;
+        auto& logStream = mStreamBuff[szFileName];
+        logStream << szLogPrefix << logItem.mLogMsg << std::endl;
+        if (logStream.str().size() > 65536) break;
       }
       
     }
@@ -84,10 +86,10 @@ class LogImp : public Thread {
       String strFileName = it.first;
       if (strFileName.find(GetLogFilePrefix(ELogLevel_Warning)) != strFileName.npos)
         fprintf(stdout, "%s", it.second.str().c_str());
-      const char* szFileName = (mCfg.Path + strFileName).c_str();
-      FILE* fd = fopen(szFileName, "ab+");
+      strFileName = mCfg.Path + strFileName;
+      FILE* fd = fopen(strFileName.c_str(), "ab+");
       if (fd == nullptr) {
-        printf("Log File:%s Open Error %s\n", szFileName, strerror(errno));
+        printf("Log File:%s Open Error %s\n", strFileName.c_str(), strerror(errno));
         continue;
       }
 
@@ -100,8 +102,8 @@ class LogImp : public Thread {
       if (ufilesize >= mCfg.MaxSize) {
         char newFileName[1024] = {0};
         uint64_t uNow = (uint64_t)time(nullptr);
-        safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", szFileName, uNow);
-        rename(szFileName, newFileName);
+        safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", strFileName.c_str(), uNow);
+        rename(strFileName.c_str(), newFileName);
       }
     }
     mStreamBuff.clear();

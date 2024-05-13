@@ -30,7 +30,7 @@ class T1V1Queue : NonCopyable {
   }
 
   bool Enqueue(const ElementType& InItem) {
-    TNode* pNewNode = new TNode(InItem);
+    TNode* pNewNode = new (std::nothrow) TNode(InItem);
     if (pNewNode == nullptr) return false;
     TNode* OldHead = mHead;
     mHead = pNewNode;
@@ -107,7 +107,7 @@ class TMultiV1Queue : NonCopyable {
   }
 
   bool Enqueue(const ElementType& InItem) {
-    TNode* pNewNode = new TNode(InItem);
+    TNode* pNewNode = new (std::nothrow) TNode(InItem);
     if (pNewNode == nullptr) return false;
 
     TNode* pCurrHead = mHead;
@@ -204,7 +204,7 @@ class TQueue : NonCopyable {
   }
 
   bool Enqueue(const ElementType& InItem) { 
-    TNode* pNewNode = new TNode(InItem);
+    TNode* pNewNode = new (std::nothrow) TNode(InItem);
     if (pNewNode == nullptr) return false;
 
     TNode* pCurrHead = mHead;

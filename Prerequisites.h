@@ -77,6 +77,10 @@ extern "C" {
 
 #define CPPFD_OFFSET(C, M) ((unsigned long long)(&((const C*)1024)->M) - 1024)
 
+#ifndef UINT_MAX
+#  define UINT_MAX ((uint32_t)(-1))
+#endif
+
 template <bool>
 struct CompileTimeError;
 template <>
