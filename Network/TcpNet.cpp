@@ -303,7 +303,12 @@ class NetThread : public Thread {
         }
         uHeaderOffset += (uint32_t)nRecv;
         if (uHeaderOffset == mHeaderSize) {
-          pPack.reset(new PackImp(mEngine->mDecoder->GetBodyLen(pHeaderBuf) + mHeaderSize, mEngine->mDecoder));
+          uint32_t uBodyLen = mEngine->mDecoder->GetBodyLen(pHeaderBuf);
+          if (uBodyLen + mHeaderSize > MAX_PACK_LEN) {
+            LOG_ERROR("%s invalid bodylen:%u", pConn->Info().c_str(), uBodyLen);
+            return false;
+          }
+          pPack.reset(new PackImp(uBodyLen + mHeaderSize, mEngine->mDecoder));
           ::memcpy(pPack->mBuff, pHeader->mBuff, mHeaderSize);
           pPack->mRWOffset = uHeaderOffset;
         }
@@ -392,7 +397,10 @@ class NetThread : public Thread {
 
   std::shared_ptr<PackImp> pPack = std::make_shared<PackImp>(pDecoder->GetHeaderSize() + uPackLen, pDecoder);
   pDecoder->SetCmd(pPack->mBuff, strCmd);
-  pDecoder->SetBodyLen(pPack->mBuff, uPackLen);
+  if (!pDecoder->SetBodyLen(pPack->mBuff, uPackLen)) {
+    LOG_ERROR("Invalid PackLen:%u", uPackLen);
+    return false;
+  }
   if (szPack != nullptr && uPackLen > 0) ::memcpy(pPack->mBuff + pDecoder->GetHeaderSize(), szPack, uPackLen);
   mIO->mSendBuff.Enqueue(pPack);
 
