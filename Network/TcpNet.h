@@ -53,7 +53,7 @@ class TcpEngine : public NonCopyable {
   TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
   virtual ~TcpEngine();
   
-  void SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto);//只能在start之前调用
+  void SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto);//设置字节混淆方法，只能在start之前调用
   bool Start();
 
   bool Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn = true, uint32_t uLinger = 0, int nClientPort = 0);

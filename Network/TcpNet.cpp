@@ -151,14 +151,14 @@ class NetThread : public Thread {
         newEv.data.ptr = pConn;
         newEv.events = EPOLLIN | EPOLLET;
         pConn->mIO->mEpFlag = EPOLLIN;
-        epoll_ctl(mEpfd, EPOLL_CTL_MOD, pConn->mSock, &newEv);  // 先取消EPOLLOUT， 否则可能没有数据的情况下一直可写
+        epoll_ctl(mEpfd, EPOLL_CTL_MOD, pConn->mSock, &newEv);  // 取消EPOLLOUT， 否则可能没有数据的情况下一直可写
         
         if (!ProcessOutput(pConn)) {
           ProcessNetError(pConn);
         }
       }
       if (ev.events & EPOLLIN || ev.events & EPOLLERR || ev.events & EPOLLHUP) {
-        if (ProcessInput(pConn) == false) {
+        if (!ProcessInput(pConn)) {
           ProcessNetError(pConn);
         }
       }
@@ -223,12 +223,13 @@ class NetThread : public Thread {
         mEngine->OnConnecterCreate(pConn);
       });
 
-      pConn->mNetThread = mEngine->AllocateNetThread();
-      pConn->mNetThread->AddClientConnecter(pConn);
+      //windows 的accept完全在第一个线程发生， linux操作系统尝试分配负载，但是内核不知道应用的情况，负载容易不均衡
+      pConn->mNetThread = mEngine->AllocateNetThread();  
+      pConn->mNetThread->AddConnecter(pConn);
     }
   }
 
-  void AddClientConnecter(Connecter* pConn) {
+  void AddConnecter(Connecter* pConn) {
     Dispatch([=]() {
       pConn->mIO->mEpFlag = EPOLLIN;
       pConn->mIO->mRecvingHeader.reset(new PackImp(mEngine->mDecoder->GetHeaderSize(), mEngine->mDecoder));
@@ -614,7 +615,7 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
     pWorker->AddConnecter(pConn);
     OnConnecterCreate(pConn);
   });
-  pNetThread->AddClientConnecter(pConn);
+  pNetThread->AddConnecter(pConn);
   return true;
 }
 
