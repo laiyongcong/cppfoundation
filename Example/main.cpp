@@ -8,6 +8,8 @@
 
 using namespace cppfd;
 
+std::atomic_int gCounter(0);
+
 int ServerMsg::Ping(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
   LOG_TRACE("Recv Ping from %s msg:%s", pConn->Info().c_str(), szBuff);
   static String strMsg = "Hello Client!!!!!!!";
@@ -19,13 +21,14 @@ int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
   LOG_TRACE("Recv Pong from %s msg:%s", pConn->Info().c_str(), szBuff);
   static String strMsg = "Hello Server!!!!!!!";
   pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size());
+  gCounter++;
   return 0;
 }
 
 class TestClient : public TcpEngine {
  public:
-  TestClient(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
-  : TcpEngine(uNetThreadNum, uWorkerThreadNum, pDecoder, tMsgClass, -1){}
+  TestClient(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
+  : TcpEngine(uNetThreadNum, pDecoder, tMsgClass, -1){}
 
   void OnConnecterCreate(Connecter* pConn) override { 
     TcpEngine::OnConnecterCreate(pConn);
@@ -38,10 +41,10 @@ void NetTest() {
   SockInitor initor;
   LogConfig cfg;
   cfg.ProcessName = "testLog";
-  cfg.LogLevel = ELogLevel_Debug;
+  cfg.LogLevel = ELogLevel_Warning;
   Log::Init(cfg);
-  TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
-  TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  TcpEngine testServer(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
+  TestClient testClient(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
   testServer.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
   testClient.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
 
@@ -66,6 +69,8 @@ void NetTest() {
     Thread::Milisleep(1000);
     nCounter++;
   }
+  nCounter = gCounter;
+  LOG_WARNING("total:%d", nCounter);
   Log::Destroy();
 }
 

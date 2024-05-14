@@ -8,7 +8,6 @@ namespace cppfd {
 class Connecter;
 class TcpEngine;
 class NetThread;
-class ConnecterWorkerThread;
 struct NetIOInfo;
 
 typedef uint8_t (*NetCryptoFunc)(uint64_t&);  //网络字节混淆函数指针
@@ -42,7 +41,6 @@ class Connecter : public WeakPtrArray::Item, public NonCopyable {
   int mPeerPort;
   uint32_t mConnecterID;
   NetThread* mNetThread;
-  ConnecterWorkerThread* mWorker;
   NetIOInfo* mIO;
 };
 
@@ -50,7 +48,7 @@ class TcpEngine : public NonCopyable {
   friend class NetThread;
   friend class ConnecterWorkerThread;
  public:
-  TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
+  TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
   virtual ~TcpEngine();
   
   void SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto);//设置字节混淆方法，只能在start之前调用
@@ -64,14 +62,11 @@ class TcpEngine : public NonCopyable {
   virtual Connecter* AllocateConnecter() { return new (std::nothrow) Connecter; } //若用户继承并扩展了connecter，需要override此函数
  private:
   NetThread* AllocateNetThread();
-  ConnecterWorkerThread* AllocateWorker();
  protected:
   uint32_t mNetThreadNum;
-  uint32_t mWorkerNum;
   String mHost;
   int mPort;
   NetThread* mNetThreads;
-  ConnecterWorkerThread* mWorkerThreads;
   const Class* mMsgClass;
 
   uint64_t mSendCryptoSeed;
