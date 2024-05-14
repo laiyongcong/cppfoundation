@@ -10,13 +10,14 @@ using namespace cppfd;
 
 int ServerMsg::Ping(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
   LOG_TRACE("Recv Ping from %s msg:%s", pConn->Info().c_str(), szBuff);
-  pConn->Send("Pong", szBuff, uBuffLen);
+  static String strMsg = "Hello Client!!!!!!!";
+  pConn->Send("Pong", strMsg.c_str(), (uint32_t)strMsg.size());
   return 0;
 }
 
 int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
   LOG_TRACE("Recv Pong from %s msg:%s", pConn->Info().c_str(), szBuff);
-  static String strMsg = "Hello Client!!!!!!!";
+  static String strMsg = "Hello Server!!!!!!!";
   pConn->Send("Ping", strMsg.c_str(), (uint32_t)strMsg.size());
   return 0;
 }
