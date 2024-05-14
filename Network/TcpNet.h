@@ -22,13 +22,13 @@ struct Pack {
   virtual uint32_t GetDataLen() const = 0; //数据长度，包含包头
 };
 
-class Connecter : public WeakPtrArray::Item, public NonCopyable {
+class Connecter : public NonCopyable {
   friend class TcpEngine;
   friend class NetThread;
   friend struct NetIOInfo;
  public:
   Connecter();
-  ~Connecter();
+  virtual ~Connecter();
 
   bool Send(const String& strCmd, const char* szPack, uint32_t uPackLen);
   FORCEINLINE String Info() const { return "ConnecterID:" + std::to_string(mConnecterID) + " ip:" + mPeerIp + " port:" + std::to_string(mPeerPort); }
@@ -42,7 +42,6 @@ class Connecter : public WeakPtrArray::Item, public NonCopyable {
   int mPeerPort;
   uint32_t mConnecterID;
   NetThread* mNetThread;
-  ConnecterWorkerThread* mWorker;
   NetIOInfo* mIO;
 };
 
@@ -50,7 +49,7 @@ class TcpEngine : public NonCopyable {
   friend class NetThread;
   friend class ConnecterWorkerThread;
  public:
-  TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
+  TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
   virtual ~TcpEngine();
   
   void SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto);//设置字节混淆方法，只能在start之前调用
@@ -61,16 +60,15 @@ class TcpEngine : public NonCopyable {
   virtual void OnConnecterCreate(Connecter* pConn);                  // 被connecter的worker线程调用，
   virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被connecter的worker线程调用，
   virtual int OnRecvMsg(Connecter* pConn, Pack* pPack); // 被connecter的worker线程调用
+  virtual Connecter* AllocateConnecter() { return new (std::nothrow) Connecter; }// 若使用者想继承扩展Connecter，可以override这个函数，new出自己的Connecter
  private:
   NetThread* AllocateNetThread();
-  ConnecterWorkerThread* AllocateWorker();
  protected:
   uint32_t mNetThreadNum;
   uint32_t mWorkerNum;
   String mHost;
   int mPort;
   NetThread* mNetThreads;
-  ConnecterWorkerThread* mWorkerThreads;
   const Class* mMsgClass;
 
   uint64_t mSendCryptoSeed;
