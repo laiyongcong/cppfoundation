@@ -204,16 +204,16 @@ int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
 ```
 其中TcpEngine是一个多线程网络处理引擎（支持ipv6，未测试），其中线程包含网络线程和工作线程，网络线程只进行网络消息的收发，而工作线程则负责消息的处理。
 ```
-//分别是网络线程数量、工作线程数量、解包器（支持自定义包头）、消息处理类、绑定端口（客户端模式填-1）、绑定地址
-TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
+//分别是网络线程数量、解包器（支持自定义包头）、消息处理类、绑定端口（客户端模式填-1）、绑定地址
+TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
 ```
 
 我们实现一个ping-pong通信，需要客户端链接创建时发起Ping操作，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
 ```
 class TestClient : public TcpEngine {
  public:
-  TestClient(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
-  : TcpEngine(uNetThreadNum, uWorkerThreadNum, pDecoder, tMsgClass, -1){}
+  TestClient(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
+  : TcpEngine(uNetThreadNum, pDecoder, tMsgClass, -1){}
 
   void OnConnecterCreate(Connecter* pConn) override { 
     TcpEngine::OnConnecterCreate(pConn);
@@ -230,8 +230,8 @@ void NetTest() {
   cfg.ProcessName = "testLog";
   cfg.LogLevel = ELogLevel_Debug;
   Log::Init(cfg);
-  TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
-  TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  TcpEngine testServer(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
+  TestClient testClient(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
   testServer.Start();
   testClient.Start();
 
