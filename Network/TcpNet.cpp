@@ -175,7 +175,7 @@ class NetThread : public Thread {
         continue;
       }
 
-      Connecter* pConn = new (std::nothrow) Connecter;
+      Connecter* pConn = mEngine->AllocateConnecter();
       if (pConn == nullptr) {
         LOG_ERROR("allocate connecter error");
         SocketAPI::Close(sock);
@@ -523,7 +523,7 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
   SOCKET sock = INVALID_SOCKET;
   if (!TcpClient::Connect(sock, szHost, nPort, pMicroTimeout, bLingerOn, uLinger, nClientPort)) return false;
 
-   Connecter* pConn = new (std::nothrow) Connecter;
+   Connecter* pConn = AllocateConnecter();
   if (pConn == nullptr) {
     LOG_ERROR("allocate connecter error");
     SocketAPI::Close(sock);
