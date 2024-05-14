@@ -56,9 +56,9 @@ class TcpEngine : public NonCopyable {
 
   bool Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn = true, uint32_t uLinger = 0, int nClientPort = 0);
  public:
-  virtual void OnConnecterCreate(Connecter* pConn);                  // 被connecter的worker线程调用，
-  virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被connecter的worker线程调用，
-  virtual int OnRecvMsg(Connecter* pConn, Pack* pPack); // 被connecter的worker线程调用
+  virtual void OnConnecterCreate(Connecter* pConn);                  // 被网络线程调用，
+  virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被网络线程调用，
+  virtual int OnRecvMsg(Connecter* pConn, Pack* pPack); // 被网络线程调用
   virtual Connecter* AllocateConnecter() { return new (std::nothrow) Connecter; } //若用户继承并扩展了connecter，需要override此函数
  private:
   NetThread* AllocateNetThread();
@@ -74,6 +74,9 @@ class TcpEngine : public NonCopyable {
   BaseNetDecoder* mDecoder;
   NetCryptoFunc mSendCryptoFunc;
   NetCryptoFunc mRecvCryptoFunc;
+
+ private:
+  uint32_t mHeaderSize;
 };
 
 class TcpClient {

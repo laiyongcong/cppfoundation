@@ -411,8 +411,7 @@ void Connecter::Kick(const String& strMsg) {
 }
 
 TcpEngine::TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost /*= "0.0.0.0"*/)
-    : mHost(strHost), mPort(nPort), mNetThreadNum(uNetThreadNum), mDecoder(pDecoder),
-    mSendCryptoSeed(0), mRecvCryptoSeed(0), mSendCryptoFunc(nullptr), mRecvCryptoFunc(nullptr) {
+    : mHost(strHost), mPort(nPort), mNetThreadNum(uNetThreadNum), mDecoder(pDecoder), mSendCryptoSeed(0), mRecvCryptoSeed(0), mSendCryptoFunc(nullptr), mRecvCryptoFunc(nullptr), mHeaderSize(0) {
   mNetThreads = new NetThread[uNetThreadNum];
   for (uint32_t i = 0; i < uNetThreadNum; i++) {
     mNetThreads[i].mEngine = this;
@@ -421,7 +420,9 @@ TcpEngine::TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std
   if (mMsgClass == nullptr) {
     LOG_FATAL("unknow msg class:%s", Demangle(tMsgClass.name()).c_str());
   }
-  mDecoder = pDecoder;
+  if (mDecoder) {
+    mHeaderSize = mDecoder->GetHeaderSize();
+  }
  }
 
  TcpEngine::~TcpEngine() {
@@ -450,7 +451,7 @@ bool TcpEngine::Start() {
     return false;
   }
   for (uint32_t i = 0; i < mNetThreadNum; i++) {
-    mNetThreads[i].mHeaderSize = mDecoder->GetHeaderSize();
+    mNetThreads[i].mHeaderSize = mHeaderSize;
     mNetThreads[i].Start("NetThread" + std::to_string(i));
     if (mPort > 0 && !mNetThreads[i].Invoke<bool>([=]() { return mNetThreads[i].Init(mHost, mPort); })) {
       LOG_FATAL("init net failed");
@@ -480,7 +481,6 @@ void TcpEngine::OnConnecterClose(std::shared_ptr<Connecter> pConn, const String&
 }
 
 int TcpEngine::OnRecvMsg(Connecter* pConn, Pack* pPack) {
-  static uint32_t uHeaderSize = mDecoder->GetHeaderSize();
   const char* pBuff = pPack->GetBuff();
   const String& strCmd = mDecoder->GetCmd(pBuff);
   const StaticMethod* pMethod = mMsgClass->GetStaticMethod(strCmd.c_str());
@@ -488,7 +488,7 @@ int TcpEngine::OnRecvMsg(Connecter* pConn, Pack* pPack) {
     LOG_FATAL("unknow msg:%s", strCmd.c_str());
     return -1;
   }
-  return pMethod->Invoke<int, Connecter*, const char*, uint32_t>(pConn, pBuff + uHeaderSize, pPack->GetDataLen() - uHeaderSize);
+  return pMethod->Invoke<int, Connecter*, const char*, uint32_t>(pConn, pBuff + mHeaderSize, pPack->GetDataLen() - mHeaderSize);
 }
 
 
