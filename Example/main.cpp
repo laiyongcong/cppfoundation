@@ -24,8 +24,8 @@ int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
 
 class TestClient : public TcpEngine {
  public:
-  TestClient(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
-  : TcpEngine(uNetThreadNum, pDecoder, tMsgClass, -1){}
+  TestClient(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass) 
+  : TcpEngine(uNetThreadNum, uWorkerThreadNum, pDecoder, tMsgClass, -1){}
 
   void OnConnecterCreate(Connecter* pConn) override { 
     TcpEngine::OnConnecterCreate(pConn);
@@ -40,8 +40,8 @@ void NetTest() {
   cfg.ProcessName = "testLog";
   cfg.LogLevel = ELogLevel_Debug;
   Log::Init(cfg);
-  TcpEngine testServer(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
-  TestClient testClient(2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
+  TcpEngine testServer(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ServerMsg), 9100);
+  TestClient testClient(2, 2, (BaseNetDecoder*)&g_NetHeaderDecoder, typeid(ClientMsg));
   testServer.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
   testClient.SetCrypto(DefaultNetCryptoFunc, DefaultNetCryptoFunc, 12345, 12345);
 
