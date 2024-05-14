@@ -208,7 +208,7 @@ int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
 TcpEngine(uint32_t uNetThreadNum, uint32_t uWorkerThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
 ```
 
-我们实现一个ping-pong通信，需要客户端链接创建时发起pin操作，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
+我们实现一个ping-pong通信，需要客户端链接创建时发起Ping操作，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
 ```
 class TestClient : public TcpEngine {
  public:
