@@ -64,7 +64,10 @@ class LogImp : public Thread {
         safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                     tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
       }
-      mStreamBuff[szFileName] << szLogPrefix << logItem.mLogMsg << std::endl;
+      auto& logStream = mStreamBuff[szFileName];
+      logStream << szLogPrefix << logItem.mLogMsg << std::endl;
+      if (logStream.str().size() > 65536) break;
+
       if (logItem.mLogLevel < ELogLevel_Warning) {
         if (mCfg.FileCut == ELogCut_Day) {
           safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
@@ -76,9 +79,9 @@ class LogImp : public Thread {
           safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                       tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
         }
-        auto& logStream = mStreamBuff[szFileName];
-        logStream << szLogPrefix << logItem.mLogMsg << std::endl;
-        if (logStream.str().size() > 65536) break;
+        auto& errorlogStream = mStreamBuff[szFileName];
+        errorlogStream << szLogPrefix << logItem.mLogMsg << std::endl;
+        if (errorlogStream.str().size() > 65536) break;
       }
       
     }
