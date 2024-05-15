@@ -21,13 +21,13 @@ struct Pack {
   virtual uint32_t GetDataLen() const = 0; //数据长度，包含包头
 };
 
-class Connecter : public WeakPtrArray::Item, public NonCopyable {
+class Connecter : public NonCopyable {
   friend class TcpEngine;
   friend class NetThread;
   friend struct NetIOInfo;
  public:
   Connecter();
-  ~Connecter();
+  virtual ~Connecter();
 
   bool Send(const String& strCmd, const char* szPack, uint32_t uPackLen);
   FORCEINLINE String Info() const { return "ConnecterID:" + std::to_string(mConnecterID) + " ip:" + mPeerIp + " port:" + std::to_string(mPeerPort); }
@@ -35,6 +35,7 @@ class Connecter : public WeakPtrArray::Item, public NonCopyable {
   FORCEINLINE String GetPeerIp() const { return mPeerIp; }
   FORCEINLINE int GetPeerPort() const { return mPeerPort; }
   void Kick(const String& strMsg);
+  bool Send(Pack* pPack); //自定义包头，需要自行打包，然后使用这个接口发送
  private:
   SOCKET mSock;
   String mPeerIp;
@@ -53,8 +54,7 @@ class TcpEngine : public NonCopyable {
   
   void SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCryptoFunc, uint64_t uSendCrypto, uint64_t uRecvCrypto);//设置字节混淆方法，只能在start之前调用
   bool Start();
-
-  bool Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn = true, uint32_t uLinger = 0, int nClientPort = 0);
+  std::shared_ptr<Connecter> Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn = true, uint32_t uLinger = 0, int nClientPort = 0);
  public:
   virtual void OnConnecterCreate(Connecter* pConn);                  // 被网络线程调用，
   virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被网络线程调用，

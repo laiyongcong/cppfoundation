@@ -404,9 +404,29 @@ class NetThread : public Thread {
   if (szPack != nullptr && uPackLen > 0) ::memcpy(pPack->mBuff + pDecoder->GetHeaderSize(), szPack, uPackLen);
   mIO->mSendBuff.Enqueue(pPack);
 
-  Connecter* pConn = this;
-  if (mNetThread != nullptr) 
-    mNetThread->ProcessSend(pConn);
+  mNetThread->ProcessSend(this);
+  return true;
+}
+
+
+bool Connecter::Send(Pack* pPack) {
+  if (mNetThread == nullptr) {
+    LOG_FATAL("no net thread");
+    return false;
+  }
+  if (mIO == nullptr || mIO->mDecoder == nullptr) {
+    LOG_FATAL("no decoder");
+    return false;
+  }
+  BaseNetDecoder* pDecoder = mIO->mDecoder;
+  if (pDecoder->GetHeaderSize() + pDecoder->GetBodyLen(pPack->GetBuff()) != pPack->GetDataLen()) {
+    LOG_ERROR("Invalid Pack");
+    return false;
+  }
+  std::shared_ptr<PackImp> pPackImp = std::make_shared<PackImp>(pPack->GetDataLen(), pDecoder);
+  ::memcpy(pPackImp->mBuff, pPack->GetBuff(), pPack->GetDataLen());
+  mIO->mSendBuff.Enqueue(pPackImp);
+  mNetThread->ProcessSend(this);
   return true;
 }
 
@@ -517,25 +537,25 @@ cppfd::NetThread* TcpEngine::AllocateNetThread() {
   return &(mNetThreads[nIdx]);
 }
 
-bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /*= true*/, uint32_t uLinger /*= 0*/, int nClientPort /* = 0*/) {
+std::shared_ptr<Connecter> TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /*= true*/, uint32_t uLinger /*= 0*/, int nClientPort /* = 0*/) {
   NetThread* pNetThread = AllocateNetThread();
   if (pNetThread == nullptr) {
-    return false;
+    return nullptr;
   }
 
   if (!mNetThreads[0].IsRunning()) {
     LOG_ERROR("Engine is not runing");
-    return false;
+    return nullptr;
   }
 
   SOCKET sock = INVALID_SOCKET;
-  if (!TcpClient::Connect(sock, szHost, nPort, pMicroTimeout, bLingerOn, uLinger, nClientPort)) return false;
+  if (!TcpClient::Connect(sock, szHost, nPort, pMicroTimeout, bLingerOn, uLinger, nClientPort)) return nullptr;
 
    Connecter* pConn = AllocateConnecter();
   if (pConn == nullptr) {
     LOG_ERROR("allocate connecter error");
     SocketAPI::Close(sock);
-    return false;
+    return nullptr;
   }
   pConn->mSock = sock;
   pConn->mNetThread = pNetThread;
@@ -548,7 +568,7 @@ bool TcpEngine::Connect(const char* szHost, int nPort, int* pMicroTimeout, bool 
   pConn->mIO->mRecvCryptoSeed = mRecvCryptoSeed;
 
   pNetThread->AddConnecter(pConn);
-  return true;
+  return std::shared_ptr<Connecter>(pConn, [](Connecter* pConn){}); //被NetThread管理的Connecter不需要被外部delete
 }
 
 bool TcpClient::Connect(SOCKET& sock, const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /* = true*/, uint32_t uLinger /*= 0*/, int nClientPort /*= 0*/) {
