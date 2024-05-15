@@ -59,7 +59,8 @@ class TcpEngine : public NonCopyable {
   virtual void OnConnecterCreate(Connecter* pConn);                  // 被网络线程调用，
   virtual void OnConnecterClose(std::shared_ptr<Connecter> pConn, const String& szErrMsg); // 被网络线程调用，
   virtual int OnRecvMsg(Connecter* pConn, Pack* pPack); // 被网络线程调用
-  virtual Connecter* AllocateConnecter() { return new (std::nothrow) Connecter; } //若用户继承并扩展了connecter，需要override此函数
+  // 若用户继承并扩展了connecter，需要override此函数， 若想用内存池的方式管理链接，需要自行修改connecter的分配和回收，需要注意线程安全
+  virtual Connecter* AllocateConnecter() { return new (std::nothrow) Connecter; } 
  private:
   NetThread* AllocateNetThread();
  protected:

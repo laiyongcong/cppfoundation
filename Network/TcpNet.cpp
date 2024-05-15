@@ -419,7 +419,7 @@ bool Connecter::Send(Pack* pPack) {
     return false;
   }
   BaseNetDecoder* pDecoder = mIO->mDecoder;
-  if (pDecoder->GetHeaderSize() + pDecoder->GetBodyLen(pPack->GetBuff()) != pPack->GetDataLen()) {
+  if (pPack == nullptr || pDecoder->GetHeaderSize() + pDecoder->GetBodyLen(pPack->GetBuff()) != pPack->GetDataLen()) {
     LOG_ERROR("Invalid Pack");
     return false;
   }

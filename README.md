@@ -1,5 +1,5 @@
 # 简介
-cppfoundation是一个c++基础库，这部分代码曾经在某游戏项目中使用过，经过一段时间思考，觉得曾经写过的一些代码有一定的价值，于是把这些部分重新整理，供大家参考。 
+cppfoundation是一个跨平台的c++基础库，这部分代码曾经在某游戏项目中使用过，经过一段时间思考，觉得曾经写过的一些代码有一定的价值，于是把这些部分重新整理，供大家参考。 
 
 该基础库主要包含：
 * c++反射（已完成）
@@ -202,13 +202,13 @@ int ClientMsg::Pong(Connecter* pConn, const char* szBuff, uint32_t uBuffLen) {
   return 0;
 }
 ```
-其中TcpEngine是一个多线程网络处理引擎（支持ipv6，未测试），其中线程包含网络线程和工作线程，网络线程只进行网络消息的收发，而工作线程则负责消息的处理。
+其中TcpEngine是一个多线程网络处理引擎（支持ipv6，未测试）
 ```
 //分别是网络线程数量、解包器（支持自定义包头）、消息处理类、绑定端口（客户端模式填-1）、绑定地址
 TcpEngine(uint32_t uNetThreadNum, BaseNetDecoder* pDecoder, const std::type_info& tMsgClass, int nPort, const String& strHost = "0.0.0.0");
 ```
 
-我们实现一个ping-pong通信，需要客户端链接创建时发起Ping操作，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
+我们实现一个ping-pong通信，需要客户端链接创建时发起Ping操作(已支持Connect后获得connecter指针，直接Send)，只需要继承一下TcpEngine， 重新实现一下链接创建的处理：
 ```
 class TestClient : public TcpEngine {
  public:
