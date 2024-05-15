@@ -237,13 +237,15 @@ class TQueue : NonCopyable {
     pPop->Item = ElementType();
     uint64_t uCurrSize = --mSize;
     uint64_t uNeedDelNum = mListSize.load() - uCurrSize;
-    if (uNeedDelNum > 256 && ++mUniqDelFlag == 1) {
-      while (mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted && uNeedDelNum > 256) {
-        TNode* pDel = mDelTail;
-        mDelTail = mDelTail->NextNode;
-        mListSize--;
-        uNeedDelNum--;
-        delete pDel;
+    if (uNeedDelNum > 256) {
+      if (++mUniqDelFlag == 1) {
+        while (mDelTail->NextNode != nullptr && mDelTail->NextNode->BeDeleted && uNeedDelNum > 256) {
+          TNode* pDel = mDelTail;
+          mDelTail = mDelTail->NextNode;
+          mListSize--;
+          uNeedDelNum--;
+          delete pDel;
+        }
       }
       --mUniqDelFlag;
     }
@@ -253,12 +255,6 @@ class TQueue : NonCopyable {
   void Empty() { while (Pop()); }
 
   uint64_t GetSize() const { return mSize; }
-
- private:
-  void DeleteTail() { 
-      uint64_t uNeedDelSize = mListSize - mSize;
-
-  }
 
  private:
   struct TNode {
