@@ -136,7 +136,7 @@ Thread* ThreadKeeper::Keep() {
   return mThread;
 }
 
-Thread::Thread() : mRunningFlag(0), mPool(nullptr) { 
+Thread::Thread() : mRunningFlag(0), mPool(nullptr), mIdxInPool(0) { 
   mKeeper = std::make_shared<ThreadKeeper>();
   mKeeper->mThread = this;
 }
@@ -258,6 +258,7 @@ ThreadData Thread::sThreadData(nullptr);
   mThreads = new Thread[mThreadNum];
   for (int32_t i = 0; i < mThreadNum; i++) {
     mThreads[i].mPool = this;
+    mThreads[i].mIdxInPool = i;
   }
  }
 

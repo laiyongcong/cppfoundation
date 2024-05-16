@@ -142,6 +142,9 @@ class Thread {
 
   FORCEINLINE bool IsRunning() const { return mRunningFlag > 0; }
 
+  //使用线程池并行计算，可以使用这个idx区分自身在线程池中的idx，从而得到自身应负责计算的那部分数据
+  FORCEINLINE int32_t GetIdxInPool() const { return mIdxInPool; }
+
  private:
   static void Routine(Thread* pThread) noexcept;
  private:
@@ -153,6 +156,7 @@ class Thread {
   TMultiV1Queue<std::function<void()> > mTaskQueue;
   std::shared_ptr<ThreadKeeper> mKeeper;
   ThreadPool* mPool;
+  int32_t mIdxInPool;
 };
 
 class ThreadPool {
