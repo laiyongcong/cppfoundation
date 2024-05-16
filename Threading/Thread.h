@@ -28,6 +28,7 @@ typedef unsigned __int64 MODEL_PART;
 typedef pthread_t TID;
 #endif
 
+//某些编译器上没有shared_mutex
 // 可重入的读写锁, 多少次lock就需要对应多少次unlock,  只能加读锁或者写锁，不能同时加两种锁
 class ReadWriteLock {
  public:
