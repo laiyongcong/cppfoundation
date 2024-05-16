@@ -596,8 +596,8 @@ class Class {
    const Method* GetMethod(const char* szName, bool bSearchSuper = true) const;
    const StaticMethod* GetStaticMethod(const char* szName, bool bSearchSuper = true) const;
 
-  private:
    static ClassMap& GetClassMap();
+  private:
    static TypeInfoMap& GetTypeInfoMap(EnumClassType eType);
 
    FORCEINLINE void RegistClassMap(const String& strName) { GetClassMap().insert(std::make_pair(strName, this)); }

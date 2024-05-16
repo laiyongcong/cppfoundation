@@ -110,7 +110,7 @@ class Thread {
   template<typename R>
   R Invoke(const std::function<R()>& func) {
     Thread* pCurrThread = GetCurrentThread();
-    if (pCurrThread == this || pCurrThread == nullptr) return func();
+    if (pCurrThread == this) return func();
     R res;
     ThreadEvent ev(false);
     Post([&]() {
@@ -123,7 +123,7 @@ class Thread {
 
   void Invoke(const std::function<void()>& func) {
     Thread* pCurrThread = GetCurrentThread();
-    if (pCurrThread == this || pCurrThread == nullptr) {
+    if (pCurrThread == this) {
       func();
       return;
     }
