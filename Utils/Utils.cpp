@@ -511,6 +511,7 @@ bool WeakPtrArray::Del(Item* pItem) {
   mItems[mCount - 1] = nullptr;
   mCount--;
   pItem->mArray = nullptr;
+  pItem->mIdx = -1;
   return true;
  }
 

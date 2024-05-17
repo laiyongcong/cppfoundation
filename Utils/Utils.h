@@ -49,6 +49,13 @@ class WeakPtrArray {
 
   bool Add(Item* pItem);
   bool Del(Item* pItem);
+  FORCEINLINE bool IsContain(Item* pItem) {
+    if (pItem == nullptr || pItem->mArray != this) return false;
+    if (pItem->mIdx < 0 || (uint32_t)pItem->mIdx >= mCount || mItems[pItem->mIdx] != pItem) {
+      return false;
+    }
+    return true;
+  }
   FORCEINLINE Item* Get(uint32_t idx) {
     if (idx >= mCount) return nullptr;
     return mItems[idx];

@@ -21,7 +21,7 @@ struct Pack {
   virtual uint32_t GetDataLen() const = 0; //数据长度，包含包头
 };
 
-class Connecter : public NonCopyable {
+class Connecter : public NonCopyable, public WeakPtrArray::Item {
   friend class TcpEngine;
   friend class NetThread;
   friend struct NetIOInfo;

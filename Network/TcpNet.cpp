@@ -45,17 +45,19 @@ struct NetIOInfo {
 
 class NetThread : public Thread {
  public:
-  NetThread() : mEngine(nullptr), mListenFd(INVALID_SOCKET), mHeaderSize(0), mConnecterCount(0) { 
+  NetThread() : mEngine(nullptr), mListenFd(INVALID_SOCKET), mConnecters(MAX_EPOLL_EVENTS), mHeaderSize(0) { 
       mEpfd = epoll_create(MAX_EPOLL_EVENTS); 
   }
   ~NetThread() {
     Stop();
     close_epoll_fd(mEpfd);
     SocketAPI::Close(mListenFd);
-    for (auto it : mConnectersMap) {
-      delete it;
+    uint32_t uConnecterNum = mConnecters.Size();
+    for (uint32_t i = 0; i < uConnecterNum; i++) {
+      Connecter* pConn = (Connecter*)mConnecters.Get(i);
+      delete pConn;
     }
-    mConnectersMap.clear();
+    mConnecters.Clear();
   }
  public:
   bool Init(const String& strHost, int nPort) { 
@@ -110,7 +112,7 @@ class NetThread : public Thread {
     int nErrCode;
     uint64_t uTime = Utils::GetCurrentTime();
     RunTask();
-    if (mConnecterCount == 0 && mListenFd == INVALID_SOCKET) {
+    if (mConnecters.Size() == 0 && mListenFd == INVALID_SOCKET) {
       if (Utils::GetCurrentTime() == uTime) Thread::Milisleep(1);
       return;
     }
@@ -212,16 +214,14 @@ class NetThread : public Thread {
       ev.data.ptr = pConn;
       ev.events = EPOLLIN | EPOLLET;
       epoll_ctl(mEpfd, EPOLL_CTL_ADD, pConn->mSock, &ev);
-      mConnectersMap.insert(pConn);
-      mConnecterCount++;
+      mConnecters.Add(pConn);
       mEngine->OnConnecterCreate(pConn);
     });
   }
 
   void ProcessNetError(Connecter* pConn, const String& strUserErr = "") {
-    if (mConnectersMap.find(pConn) == mConnectersMap.end()) return;
-    mConnectersMap.erase(pConn);
-    mConnecterCount--;
+    if (!mConnecters.IsContain(pConn)) return;
+    mConnecters.Del(pConn);
     std::shared_ptr<Connecter> connPtr(pConn, [=](Connecter* ptr) {  delete pConn; });//让connecter在正确的时机被delete
     epoll_ctl(mEpfd, EPOLL_CTL_DEL, pConn->mSock, NULL);
     mEngine->OnConnecterClose(connPtr, strUserErr);
@@ -347,30 +347,27 @@ class NetThread : public Thread {
 
   FORCEINLINE void ProcessSend(Connecter* pConn) {
     Dispatch([=]() {
-      if (mConnectersMap.find(pConn) == mConnectersMap.end()) return;
+      if (!mConnecters.IsContain(pConn)) return;
       if (!ProcessOutput(pConn)) ProcessNetError(pConn);
     });
   }
 
   FORCEINLINE void Kick(Connecter* pConn, const String& strMsg) {
     Dispatch([=]() {
-      if (mConnectersMap.find(pConn) == mConnectersMap.end()) return;
+      if (!mConnecters.IsContain(pConn)) return;
       ProcessNetError(pConn, strMsg);
     });
   }
 
   FORCEINLINE TcpEngine* GetEngine() const { return mEngine;}
 
-  FORCEINLINE bool IsMyConnecter(Connecter* pConn) { return mConnectersMap.find(pConn) != mConnectersMap.end();}
-
  public:
   epoll_fd mEpfd;
   epoll_event mEvents[MAX_EPOLL_EVENTS];
   TcpEngine* mEngine;
   SOCKET mListenFd;
-  std::set<Connecter*> mConnectersMap;
+  WeakPtrArray mConnecters;
   uint32_t mHeaderSize;
-  std::atomic_uint mConnecterCount;
 };
 
  Connecter::Connecter() : mNetThread(nullptr), mSock(INVALID_SOCKET), mPeerPort(-1) { 
@@ -524,8 +521,8 @@ cppfd::NetThread* TcpEngine::AllocateNetThread() {
   uint32_t uMin = UINT_MAX;
   uint32_t nIdx = UINT_MAX;
   for (uint32_t i = 0; i < mNetThreadNum; i++) {
-    if (mNetThreads[i].mConnecterCount < uMin) {
-      uMin = mNetThreads[i].mConnecterCount;
+    if (mNetThreads[i].mConnecters.Size() < uMin) {
+      uMin = mNetThreads[i].mConnecters.Size();
       nIdx = i;
     }
   }
