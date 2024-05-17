@@ -308,15 +308,13 @@ class NetThread : public Thread {
             LOG_ERROR("%s invalid bodylen:%u", pConn->Info().c_str(), uBodyLen);
             return false;
           }
-          pPack.reset(new PackImp(uBodyLen + mHeaderSize, mEngine->mDecoder));
-          ::memcpy(pPack->mBuff, pHeader->mBuff, mHeaderSize);
-          pPack->mRWOffset = uHeaderOffset;
+          pPack.reset(new PackImp(uBodyLen, mEngine->mDecoder));
         }
       }
 
       char* pPackBuff = pPack->mBuff;
       uint32_t& uOffset = pPack->mRWOffset;
-      uint32_t uDataLen = pPack->GetDataLen();
+      uint32_t uDataLen = mEngine->mDecoder->GetBodyLen(pHeaderBuf);
       while (uOffset < uDataLen) {
         int nNeedRead = (int)(uDataLen - uOffset);
         int nRecv = ::recv(pConn->mSock, pPackBuff + uOffset, nNeedRead, 0);
@@ -338,7 +336,7 @@ class NetThread : public Thread {
       }
 
       pHeader->mRWOffset = 0;
-      nErrCode = mEngine->OnRecvMsg(pConn, pPack.get());
+      nErrCode = mEngine->OnRecvMsg(pConn, pHeaderBuf, pPackBuff, uDataLen);
       pPack.reset();
       if (nErrCode != 0) pConn->Kick("Pack execute ret:" + std::to_string(nErrCode)); 
     }
@@ -505,15 +503,14 @@ void TcpEngine::OnConnecterClose(std::shared_ptr<Connecter> pConn, const String&
   LOG_TRACE("%s disconect, msg:%s", pConn->Info().c_str(), szErrMsg.c_str());
 }
 
-int TcpEngine::OnRecvMsg(Connecter* pConn, Pack* pPack) {
-  const char* pBuff = pPack->GetBuff();
-  const String& strCmd = mDecoder->GetCmd(pBuff);
+int TcpEngine::OnRecvMsg(Connecter* pConn, const char* szHeaderBuff, const char* szBodybuff, uint32_t uBodyLen) {
+  const String& strCmd = mDecoder->GetCmd(szHeaderBuff);
   const StaticMethod* pMethod = mMsgClass->GetStaticMethod(strCmd.c_str());
   if (pMethod == nullptr) {
     LOG_FATAL("unknow msg:%s", strCmd.c_str());
     return -1;
   }
-  return pMethod->Invoke<int, Connecter*, const char*, uint32_t>(pConn, pBuff + mHeaderSize, pPack->GetDataLen() - mHeaderSize);
+  return pMethod->Invoke<int, Connecter*, const char*, uint32_t>(pConn, szBodybuff, uBodyLen);
 }
 
 

@@ -205,7 +205,7 @@ void Log::WriteLog(ELogLevel eLogLevel, const char* szFormat, ...) {
     localtime_r(&tNow, &tmNow);
     safe_printf(szLogPrefix, sizeof(szLogPrefix), "%s %04d-%02d-%02d %02d:%02d:%02d.%03d %d-%s", GetLogDesc(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday, tmNow.tm_hour,
                 tmNow.tm_min, tmNow.tm_sec, (int)(logItem.mLogTime.tv_usec / 1000), Utils::GetProcessID(), logItem.mThreadName.c_str());
-    fprintf(stderr, "%s %s", szLogPrefix, szBuff);
+    fprintf(stderr, "%s %s\n", szLogPrefix, szBuff);
   }
 }
 
