@@ -172,8 +172,10 @@ class ThreadPool {
   FORCEINLINE void Post(const std::function<void()>& func) {
     if (!func) return;
     mTaskQueue.Enqueue(func);
-    std::unique_lock<std::mutex> lck(mQueueLock);
-    mQueueReady.notify_one();
+    {
+      std::unique_lock<std::mutex> lck(mQueueLock);
+      mQueueReady.notify_one();
+    }
   }
 
   FORCEINLINE void Dispatch(const std::function<void()>& func) {
