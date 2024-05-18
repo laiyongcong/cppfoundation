@@ -170,6 +170,7 @@ void Thread::Stop() {
     --mRunningFlag;
     return;
   }
+  std::unique_lock<std::mutex> lck(mQueueLock);
   mQueueReady.notify_all();
   if (GetCurrentThread() != this && mThread.joinable()) mThread.join();
  }
@@ -210,7 +211,10 @@ void Thread::Milisleep(uint32_t uMiliSec) {
       return;
     }
     mPool->mTaskQueue.Enqueue(func);
-    mPool->mQueueReady.notify_one();
+    {
+      std::unique_lock<std::mutex> lck(mQueueLock);
+      mPool->mQueueReady.notify_one();
+    }
  }
 
 void Thread::Async(const std::function<void()>& func, const std::function<void()>& cbFunc) {
@@ -292,6 +296,7 @@ void ThreadPool::Stop() {
     --mRunningFlag;
     return;
   }
+  std::unique_lock<std::mutex> lck(mQueueLock);
   mQueueReady.notify_all();
   for (int32_t i = 0; i < mThreadNum; i++) {
     mThreads[i].Stop();
@@ -319,7 +324,10 @@ void ThreadPool::BroadCast(const std::function<void()>& func) {
     mBroadCastNum++;
     mThreads[i].mTaskQueue.Enqueue(func);
   }
-  mQueueReady.notify_all();
+  {
+    std::unique_lock<std::mutex> lck(mQueueLock);
+    mQueueReady.notify_all();
+  }
  }
 
  int32_t ThreadPool::RunTask() {
