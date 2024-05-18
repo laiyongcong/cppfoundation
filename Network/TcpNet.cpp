@@ -17,7 +17,7 @@ struct PackImp : public Pack {
   }
   PackImp(std::shared_ptr<Pack> pPack, BaseNetDecoder* pDecoder) : mBuff(nullptr), mDecoder(pDecoder), mSize(0), mRWOffset(0), mIsCrypto(false), mOuterPack(pPack) {
     if (pPack == nullptr) return;
-    mBuff = (char*)pPack->GetBuff();
+    mBuff = const_cast<char*>(pPack->GetBuff());
     mSize = pPack->GetDataLen() + 1;
   }
   ~PackImp() { if(mOuterPack == nullptr) SAFE_DELETE_ARRAY(mBuff); }
