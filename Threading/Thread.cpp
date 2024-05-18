@@ -26,7 +26,7 @@ void ThreadEvent::WaitInfinite() {
 }
 
 void ThreadEvent::Post() {
-  //std::unique_lock<std::mutex> lck(mMutex);
+  std::unique_lock<std::mutex> lck(mMutex);
   mSignal = true;
   mCond.notify_one();
 }
