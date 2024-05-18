@@ -9,12 +9,18 @@ struct PackImp : public Pack {
   uint32_t mSize;
   uint32_t mRWOffset;
   bool mIsCrypto;
+  std::shared_ptr<Pack> mOuterPack;
   PackImp(uint32_t uSize, BaseNetDecoder* pDecoder) : mSize(uSize + 1), mRWOffset(0), mIsCrypto(false) {
     mBuff = new char[mSize];
     mBuff[mSize - 1] = 0;
     mDecoder = pDecoder;
   }
-  ~PackImp() { SAFE_DELETE_ARRAY(mBuff); }
+  PackImp(std::shared_ptr<Pack> pPack, BaseNetDecoder* pDecoder) : mBuff(nullptr), mDecoder(pDecoder), mSize(0), mRWOffset(0), mIsCrypto(false), mOuterPack(pPack) {
+    if (pPack == nullptr) return;
+    mBuff = (char*)pPack->GetBuff();
+    mSize = pPack->GetDataLen() + 1;
+  }
+  ~PackImp() { if(mOuterPack == nullptr) SAFE_DELETE_ARRAY(mBuff); }
 
   virtual const char* GetBuff() { return mBuff; }
   virtual uint32_t GetDataLen() const {
@@ -404,7 +410,7 @@ class NetThread : public Thread {
 }
 
 
-bool Connecter::Send(Pack* pPack) {
+bool Connecter::Send(std::shared_ptr<Pack> pPack) {
   if (mNetThread == nullptr) {
     LOG_FATAL("no net thread");
     return false;
@@ -418,8 +424,7 @@ bool Connecter::Send(Pack* pPack) {
     LOG_ERROR("Invalid Pack");
     return false;
   }
-  std::shared_ptr<PackImp> pPackImp = std::make_shared<PackImp>(pPack->GetDataLen(), pDecoder);
-  ::memcpy(pPackImp->mBuff, pPack->GetBuff(), pPack->GetDataLen());
+  std::shared_ptr<PackImp> pPackImp = std::make_shared<PackImp>(pPack, pDecoder);
   mIO->mSendBuff.Enqueue(pPackImp);
   mNetThread->ProcessSend(this);
   return true;

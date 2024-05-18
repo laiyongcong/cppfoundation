@@ -35,7 +35,7 @@ class Connecter : public NonCopyable, public WeakPtrArray::Item {
   FORCEINLINE String GetPeerIp() const { return mPeerIp; }
   FORCEINLINE int GetPeerPort() const { return mPeerPort; }
   void Kick(const String& strMsg);
-  bool Send(Pack* pPack); //自定义包头，需要自行打包，然后使用这个接口发送
+  bool Send(std::shared_ptr<Pack> pPack); //自定义包头，需要自行打包，然后使用这个接口发送
  private:
   SOCKET mSock;
   String mPeerIp;
