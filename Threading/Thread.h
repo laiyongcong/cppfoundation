@@ -151,9 +151,10 @@ class Thread {
   std::atomic_int mRunningFlag;
   String mName;
   std::thread mThread;
-  ThreadEvent mEvent;
   static ThreadData sThreadData;
   TMultiV1Queue<std::function<void()> > mTaskQueue;
+  std::mutex mQueueLock;               /* 队列互斥锁 */
+  std::condition_variable mQueueReady; /* 队列条件锁 */
   std::shared_ptr<ThreadKeeper> mKeeper;
   ThreadPool* mPool;
   int32_t mIdxInPool;
@@ -171,6 +172,7 @@ class ThreadPool {
   FORCEINLINE void Post(const std::function<void()>& func) {
     if (!func) return;
     mTaskQueue.Enqueue(func);
+    std::unique_lock<std::mutex> lck(mQueueLock);
     mQueueReady.notify_one();
   }
 

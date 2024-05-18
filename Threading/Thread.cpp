@@ -170,7 +170,7 @@ void Thread::Stop() {
     --mRunningFlag;
     return;
   }
-  mEvent.Post();
+  mQueueReady.notify_all();
   if (GetCurrentThread() != this && mThread.joinable()) mThread.join();
  }
 
@@ -203,7 +203,10 @@ void Thread::Milisleep(uint32_t uMiliSec) {
     if (!func) return;
     if (mPool == nullptr) {
       mTaskQueue.Enqueue(func);
-      mEvent.Post();
+      { 
+        std::unique_lock<std::mutex> lck(mQueueLock);
+        mQueueReady.notify_one();
+      }
       return;
     }
     mPool->mTaskQueue.Enqueue(func);
@@ -232,8 +235,11 @@ void Thread::Routine(Thread* pThread) noexcept {
 
   if (pThread->mPool == nullptr){
       while (pThread->mRunningFlag > 0) {
+        {
+          std::unique_lock<std::mutex> lck(pThread->mQueueLock);
+          pThread->mQueueReady.wait(lck, [=]() { return pThread->mRunningFlag <= 0 || !pThread->mTaskQueue.IsEmpty(); });
+        }
         pThread->RunTask();
-        pThread->mEvent.WaitInfinite();
       }
   } else {
       while (pThread->mPool->mRunningFlag > 0) {
