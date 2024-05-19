@@ -69,7 +69,6 @@ class ThreadKeeper {
  private:
   Thread* mThread;
   ReadWriteLock mRWLocker;
-  bool mIsLock;
 };
 
 class Thread {
