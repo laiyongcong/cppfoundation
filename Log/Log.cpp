@@ -31,7 +31,8 @@ struct LogItem {
   timeval mLogTime;
   String mLogMsg;
   String mThreadName;
-  LogItem() : mLogLevel(ELogLevel_Info), mThreadName("UnknowThread") {}
+  int32_t mThreadID;
+  LogItem() : mLogLevel(ELogLevel_Info), mThreadName("UnknowThread"), mThreadID(-1) {}
 };
 
 
@@ -47,69 +48,67 @@ class LogImp : public Thread {
   }
   void Flush() { 
     LogItem logItem;
-    while (!mLogQueue.IsEmpty()) {
-      while (mLogQueue.Dequeue(logItem)) {
-        char szLogPrefix[1024], szFileName[1024];
-        time_t tNow = logItem.mLogTime.tv_sec;
-        tm tmNow;
-        localtime_r(&tNow, &tmNow);
-        safe_printf(szLogPrefix, sizeof(szLogPrefix), "%s %04d-%02d-%02d %02d:%02d:%02d.%03d %s-%d-%s", GetLogDesc(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
-                    tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec, (int)(logItem.mLogTime.tv_usec / 1000), mCfg.ProcessName.c_str(), Utils::GetProcessID(), logItem.mThreadName.c_str());
+    while (mLogQueue.Dequeue(logItem)) {
+      char szLogPrefix[1024], szFileName[1024];
+      time_t tNow = logItem.mLogTime.tv_sec;
+      tm tmNow;
+      localtime_r(&tNow, &tmNow);
+      safe_printf(szLogPrefix, sizeof(szLogPrefix), "%s %04d-%02d-%02d %02d:%02d:%02d.%03d %s-%d-%s-%d", GetLogDesc(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
+                  tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec, (int)(logItem.mLogTime.tv_usec / 1000), mCfg.ProcessName.c_str(), Utils::GetProcessID(), logItem.mThreadName.c_str(), logItem.mThreadID);
+      if (mCfg.FileCut == ELogCut_Day) {
+        safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+                    tmNow.tm_mday, 0, 0, 0);
+      } else if (mCfg.FileCut == ELogCut_Hour) {
+        safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+                    tmNow.tm_mday, tmNow.tm_hour, 0, 0);
+      } else {
+        safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+                    tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
+      }
+      auto& logStream = mStreamBuff[szFileName];
+      logStream << szLogPrefix << logItem.mLogMsg << std::endl;
+      if (logStream.str().size() > 65536) break;
+
+      if (logItem.mLogLevel < ELogLevel_Warning) {
         if (mCfg.FileCut == ELogCut_Day) {
-          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                       tmNow.tm_mday, 0, 0, 0);
         } else if (mCfg.FileCut == ELogCut_Hour) {
-          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                       tmNow.tm_mday, tmNow.tm_hour, 0, 0);
         } else {
-          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
+          safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
                       tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
         }
-        auto& logStream = mStreamBuff[szFileName];
-        logStream << szLogPrefix << logItem.mLogMsg << std::endl;
-        if (logStream.str().size() > 65536) break;
-
-        if (logItem.mLogLevel < ELogLevel_Warning) {
-          if (mCfg.FileCut == ELogCut_Day) {
-            safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
-                        tmNow.tm_mday, 0, 0, 0);
-          } else if (mCfg.FileCut == ELogCut_Hour) {
-            safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
-                        tmNow.tm_mday, tmNow.tm_hour, 0, 0);
-          } else {
-            safe_printf(szFileName, sizeof(szFileName), "%s_%s_%04d%02d%02d%02d%02d%02d.log", mCfg.FileName.c_str(), GetLogFilePrefix(ELogLevel_Warning), tmNow.tm_year + 1900, tmNow.tm_mon + 1,
-                        tmNow.tm_mday, tmNow.tm_hour, tmNow.tm_min, 0);
-          }
-          auto& errorlogStream = mStreamBuff[szFileName];
-          errorlogStream << szLogPrefix << logItem.mLogMsg << std::endl;
-          if (errorlogStream.str().size() > 65536) break;
-        }
+        auto& errorlogStream = mStreamBuff[szFileName];
+        errorlogStream << szLogPrefix << logItem.mLogMsg << std::endl;
+        if (errorlogStream.str().size() > 65536) break;
       }
-      for (auto& it : mStreamBuff) {
-        String strFileName = it.first;
-        if (strFileName.find(GetLogFilePrefix(ELogLevel_Warning)) != strFileName.npos) fprintf(stdout, "%s", it.second.str().c_str());
-        strFileName = mCfg.Path + strFileName;
-        FILE* fd = fopen(strFileName.c_str(), "ab+");
-        if (fd == nullptr) {
-          printf("Log File:%s Open Error %s\n", strFileName.c_str(), strerror(errno));
-          continue;
-        }
-
-        fprintf(fd, "%s", it.second.str().c_str());
-        fseek(fd, 0L, SEEK_END);
-        uint64_t ufilesize = (uint64_t)ftell(fd);
-        fclose(fd);
-        fd = nullptr;
-
-        if (ufilesize >= mCfg.MaxSize) {
-          char newFileName[1024] = {0};
-          uint64_t uNow = (uint64_t)time(nullptr);
-          safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", strFileName.c_str(), uNow);
-          rename(strFileName.c_str(), newFileName);
-        }
-      }
-      mStreamBuff.clear();
     }
+    for (auto& it : mStreamBuff) {
+      String strFileName = it.first;
+      if (strFileName.find(GetLogFilePrefix(ELogLevel_Warning)) != strFileName.npos) fprintf(stdout, "%s", it.second.str().c_str());
+      strFileName = mCfg.Path + strFileName;
+      FILE* fd = fopen(strFileName.c_str(), "ab+");
+      if (fd == nullptr) {
+        printf("Log File:%s Open Error %s\n", strFileName.c_str(), strerror(errno));
+        continue;
+      }
+
+      fprintf(fd, "%s", it.second.str().c_str());
+      fseek(fd, 0L, SEEK_END);
+      uint64_t ufilesize = (uint64_t)ftell(fd);
+      fclose(fd);
+      fd = nullptr;
+
+      if (ufilesize >= mCfg.MaxSize) {
+        char newFileName[1024] = {0};
+        uint64_t uNow = (uint64_t)time(nullptr);
+        safe_printf(newFileName, sizeof(newFileName), "%s.%" PRIu64 ".log", strFileName.c_str(), uNow);
+        rename(strFileName.c_str(), newFileName);
+      }
+    }
+    mStreamBuff.clear();
   }
 
   void RemoveTimeoutFile() { 
@@ -146,7 +145,7 @@ class LogImp : public Thread {
     if (logItem.mLogLevel <= mCfg.LogLevel && IsRunning())
       mLogQueue.Enqueue(logItem); 
   }
-
+  FORCEINLINE bool IsQueueEmpty() const { return mLogQueue.IsEmpty(); }
  private:
   LogConfig mCfg;
   TMultiV1Queue<LogItem> mLogQueue;
@@ -161,17 +160,21 @@ bool Log::Init(const LogConfig& cfg) {
   gLogInstance->Start("Log");
   gLogInstance->Post([]() {
     uint64_t uCounter = 0;
+    uint64_t uLastRemoveTimeout = 0;
     while (gLogInstance->IsRunning()) {
-      Thread::Milisleep(10);
-      uCounter++;
-      if (uCounter % 10 == 0) {
-        gLogInstance->Flush();
+      gLogInstance->Flush();
+      if (gLogInstance->IsQueueEmpty()) {
+        Thread::Milisleep(2);
       }
-      if (uCounter % 360000 == 0) {
+      uint64_t uTime = Utils::GetCurrentTime();
+      if (uLastRemoveTimeout + 3600000 < uTime) {
         gLogInstance->RemoveTimeoutFile();
+        uLastRemoveTimeout = uTime;
       }
     }
-    gLogInstance->Flush();
+    while (!gLogInstance->IsQueueEmpty()) {
+      gLogInstance->Flush();
+    }
   });
   return true; 
 }
@@ -195,6 +198,7 @@ void Log::WriteLog(ELogLevel eLogLevel, const char* szFormat, ...) {
 
   logItem.mLogMsg = szBuff;
   Thread* pCurrThread = Thread::GetCurrentThread();
+  logItem.mThreadID = (int32_t)Thread::GetCurrentThreadID();
   if (pCurrThread) logItem.mThreadName = pCurrThread->GetName();
 
   if (gLogInstance) gLogInstance->WriteLog(logItem);
@@ -203,8 +207,8 @@ void Log::WriteLog(ELogLevel eLogLevel, const char* szFormat, ...) {
     time_t tNow = logItem.mLogTime.tv_sec;
     tm tmNow;
     localtime_r(&tNow, &tmNow);
-    safe_printf(szLogPrefix, sizeof(szLogPrefix), "%s %04d-%02d-%02d %02d:%02d:%02d.%03d %d-%s", GetLogDesc(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday, tmNow.tm_hour,
-                tmNow.tm_min, tmNow.tm_sec, (int)(logItem.mLogTime.tv_usec / 1000), Utils::GetProcessID(), logItem.mThreadName.c_str());
+    safe_printf(szLogPrefix, sizeof(szLogPrefix), "%s %04d-%02d-%02d %02d:%02d:%02d.%03d %d-%s-%d", GetLogDesc(logItem.mLogLevel), tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday, tmNow.tm_hour,
+                tmNow.tm_min, tmNow.tm_sec, (int)(logItem.mLogTime.tv_usec / 1000), Utils::GetProcessID(), logItem.mThreadName.c_str(), logItem.mThreadID);
     fprintf(stderr, "%s %s\n", szLogPrefix, szBuff);
   }
 }

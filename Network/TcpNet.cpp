@@ -469,7 +469,7 @@ void TcpEngine::SetCrypto(NetCryptoFunc SendCryptoFunc, NetCryptoFunc RecvCrypto
   mRecvCryptoFunc = RecvCryptoFunc;
 }
 
-bool TcpEngine::Start() {
+bool TcpEngine::Start(const String& strNetThreadName /*= ""*/) {
   if (mMsgClass == nullptr) {
     LOG_FATAL("unknow msg class");
     return false;
@@ -480,7 +480,7 @@ bool TcpEngine::Start() {
   }
   for (uint32_t i = 0; i < mNetThreadNum; i++) {
     mNetThreads[i].mHeaderSize = mHeaderSize;
-    mNetThreads[i].Start("NetThread" + std::to_string(i));
+    mNetThreads[i].Start(strNetThreadName + "Thread" + std::to_string(i));
     if (mPort > 0 && !mNetThreads[i].Invoke<bool>([=]() { return mNetThreads[i].Init(mHost, mPort); })) {
       LOG_FATAL("init net failed");
       return false;
