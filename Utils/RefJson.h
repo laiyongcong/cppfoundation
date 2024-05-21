@@ -1,21 +1,12 @@
 #pragma  once
 #include "RefelectionHelper.h"
+#include "Log.h"
 
 namespace cppfd {
 enum EJsonObjType {
 	EJsonObj = 0,
 	EJsonArray = 1,
 	EJsonMap = 2
-};
-
-class JsonParseError : public std::runtime_error {
- public:
-  JsonParseError(const String& what) throw() : runtime_error(what.c_str()) { Utils::ExeceptionLog(what); }
-};
-
-class JsonWriteError : public std::runtime_error {
- public:
-  JsonWriteError(const String& what) throw() : runtime_error(what.c_str()) { Utils::ExeceptionLog(what); }
 };
 
 struct JsonTraveler;
@@ -36,7 +27,10 @@ class JsonBase {
   static String ToJsonString(T* pObj) {
     if (pObj == nullptr) return "";
     const Class* pClass = Class::GetClass(typeid(T));
-    if (pClass == nullptr) throw JsonWriteError("Unknow Type:" + Demangle(typeid(T).name()));
+    if (pClass == nullptr) {
+      LOG_ERROR("Unknow Type:%s",  Demangle(typeid(T).name()).c_str());
+      return false;
+    }
     return ToJsonString(pObj, *pClass);
   }
 
@@ -44,7 +38,10 @@ class JsonBase {
   static bool FromJsonString(T* pObj, const String& strJson) {
     if (pObj == nullptr) return false;
     const Class* pClass = Class::GetClass(typeid(T));
-    if (pClass == nullptr) throw JsonParseError("Unknow Type:" + Demangle(typeid(T).name()));
+    if (pClass == nullptr) {
+      LOG_ERROR("Unknow Type:%s", Demangle(typeid(T).name()).c_str());
+      return false;
+    }
     return FromJsonString(pObj, *pClass, strJson);
   }
 
@@ -86,7 +83,10 @@ class JsonArray : public JsonBase {
   virtual bool IsEmpty() const override { return mItems.empty(); }
  protected:
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") override {
-    if (!IsBuildInType(typeid(T))) throw JsonParseError("Error Additem for type:" + Demangle(typeid(T).name()));
+    if (!IsBuildInType(typeid(T))) {
+      LOG_ERROR("Error Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      return false;
+    }
     T item;
     Content2Field(&item, typeid(T), 1, szContent, uLen);
     mItems.push_back(item);
@@ -96,7 +96,10 @@ class JsonArray : public JsonBase {
   virtual void* NewItem() const override { return new T();}
   virtual void AddItem(void* pItem, const String& strKey = "") override { 
     T* pTItem = static_cast<T*>(pItem);
-    if (pTItem == nullptr) throw JsonParseError("Error(nullptr) Additem for type:" + Demangle(typeid(T).name()));
+    if (pTItem == nullptr) {
+      LOG_ERROR("Error(nullptr) Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      return;
+    }
     mItems.push_back(*pTItem);
     delete pTItem;
   }
@@ -130,8 +133,14 @@ class JsonMap : public JsonBase {
   virtual bool IsEmpty() const override { return mObjMap.empty(); }
  protected:
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") override {
-    if (!IsBuildInType(typeid(T))) throw JsonParseError("Error Additem for type:" + Demangle(typeid(T).name()));
-    if (strKey == "") throw JsonParseError("Empty key while Additem for type:" + Demangle(typeid(T).name()));
+    if (!IsBuildInType(typeid(T))) {
+      LOG_ERROR("Error Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      return false;
+    }
+    if (strKey == "") {
+      LOG_ERROR("Empty key while Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      return false;
+    }
     T& item = mObjMap[strKey];
     Content2Field(&item, typeid(T), 1, szContent, uLen);
     return true;
@@ -140,7 +149,15 @@ class JsonMap : public JsonBase {
   virtual void* NewItem() const override { return new T(); }
   virtual void AddItem(void* pItem, const String& strKey = "") override {
     T* pTItem = static_cast<T*>(pItem);
-    if (pTItem == nullptr) throw JsonParseError("Error(nullptr) Additem for type:" + Demangle(typeid(T).name()));
+    if (pTItem == nullptr) {
+      LOG_ERROR("Error(nullptr) Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      return;
+    }
+    if (strKey == "") {
+      LOG_ERROR("Empty key while Additem for type:%s", Demangle(typeid(T).name()).c_str());
+      delete pTItem;
+      return;
+    }
     mObjMap[strKey] = *pTItem;
     delete pTItem;
   }

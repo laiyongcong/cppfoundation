@@ -85,7 +85,7 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
         if (pField) {
           const Class* pClass = Class::GetClass(pField->GetElementType());
           if (pClass && pVectorClass->IsSuperOf(*pClass) && pTempData != NULL && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray) {
-            if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
+            if (nCount != 1) LOG_ERROR("JsonArray field with multi elements, field name:%s", pField->GetName());
             JsonBase* pVector = (JsonBase*)pTempData;
             if (traveler.mFunc) {
               pVector->AddItemByContent(szContent, nContentLen);
@@ -113,29 +113,35 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
       void* pNewItem = nullptr;
       if (pField) {
         const Class* pClass = Class::GetClass(pField->GetElementType());
-        if (pClass == nullptr) throw JsonParseError("field:" + String(pField->GetName()) + " unknow element class:" + Demangle(pField->GetElementType().name()));
-        if (pTempData != NULL) {
-          if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray)  // Vector
-          {
-            if (nCount != 1) throw JsonParseError("JsonArray field with multi elements, field name:" + String(pField->GetName()));
-            pJsonBase = (JsonBase*)pTempData;
-            if (pJsonBase) {
-              pNewItem = pJsonBase->NewItem();
-              traveler.mCurrentData = pNewItem;
-              traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
-              if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()) + " in field:" + pField->GetName());
+        if (pClass == nullptr) {
+          LOG_ERROR("field:%s unknow element class:%s", pField->GetName(), Demangle(pField->GetElementType().name()).c_str());
+        } else {
+          if (pTempData != nullptr) {
+            if (pVectorClass->IsSuperOf(*pClass) && ((JsonBase*)pTempData)->GetJsonType() == EJsonArray)  // Vector
+            {
+              if (nCount != 1) LOG_ERROR("JsonArray field with multi elements, field name:%s", pField->GetName());
+              pJsonBase = (JsonBase*)pTempData;
+              if (pJsonBase) {
+                traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
+                if (traveler.mClass == nullptr) {
+                  LOG_ERROR("Unknow type:%s in field:%s", Demangle(pJsonBase->GetItemType().name()).c_str(), pField->GetName());
+                  return -1;
+                }
+                pNewItem = pJsonBase->NewItem();
+                traveler.mCurrentData = pNewItem;
+              }
+            } else {
+              if (traveler.mIdx < nCount) {
+                traveler.mCurrentData = (char*)pTempData + nElementSize * traveler.mIdx;
+              } else {
+                traveler.mCurrentData = nullptr;
+              }
+              traveler.mClass = pClass;
             }
           } else {
-            if (traveler.mIdx < nCount) {
-              traveler.mCurrentData = (char*)pTempData + nElementSize * traveler.mIdx;
-            } else {
-              traveler.mCurrentData = NULL;
-            }
             traveler.mClass = pClass;
+            traveler.mCurrentData = nullptr;
           }
-        } else {
-          traveler.mClass = pClass;
-          traveler.mCurrentData = NULL;
         }
       } else {
         const Class* pClass = traveler.mClass;
@@ -143,10 +149,13 @@ int MyTravelArray(char top, const char** szJson, JsonTraveler& traveler){
         {
           pJsonBase = (JsonBase*)pTempData;
           if (pJsonBase) {
+            traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
+            if (traveler.mClass == nullptr) {
+              LOG_ERROR("Unknow type:%s", Demangle(pJsonBase->GetItemType().name()).c_str());
+              return -1;
+            }
             pNewItem = pJsonBase->NewItem();
             traveler.mCurrentData = pNewItem;
-            traveler.mClass = Class::GetClass(pJsonBase->GetItemType());
-            if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(pJsonBase->GetItemType().name()));
           }
         }
       }
@@ -279,15 +288,21 @@ int MyTravelLeaf(char top, const char** szJson, JsonTraveler& traveler) {
 
       if (pOldClass && pMapClass->IsSuperOf(*pOldClass) && pData != nullptr && ((JsonBase*)pData)->GetJsonType() == EJsonMap) {
         pJsonBase = (JsonBase*)pData;
+        traveler.mClass = Class::GetClass(((JsonBase*)pData)->GetItemType());
+        if (traveler.mClass == nullptr) {
+          LOG_ERROR("Unknow type:%s", Demangle(pJsonBase->GetItemType().name()).c_str());
+          return -1;
+        }
         pNewItem = pJsonBase->NewItem();
         traveler.mCurrentData = pNewItem;
-        traveler.mClass = Class::GetClass(((JsonBase*)pData)->GetItemType());
-        if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(((JsonBase*)pData)->GetItemType().name()));
       } else {
         traveler.mClass = NULL;
         if (pData && traveler.mField) {
           traveler.mClass = Class::GetClass(traveler.mField->GetType());
-          if (traveler.mClass == nullptr) throw JsonParseError("Unknow type:" + Demangle(traveler.mField->GetType().name()) + " field:" + traveler.mField->GetName());
+          if (traveler.mClass == nullptr) {
+            LOG_ERROR("Unknow type:%s in field:%s", Demangle(traveler.mField->GetType().name()).c_str(), traveler.mField->GetName());
+            return -1;
+          }
           traveler.mCurrentData = (char*)pData + traveler.mField->GetOffset();
         }
       }
@@ -374,7 +389,10 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
       safe_printf(pPos, nCount, "%s", strTmp.c_str());
     }
   } else if (tinfo == typeid(std::string)) {
-    if (nCount != 1) throw JsonParseError("std::string type with multi elements");
+    if (nCount != 1) {
+      LOG_ERROR("std::string type with multi elements");
+      return false;
+    }
     if (nContentLen == 0)
       *(std::string*)pDataAddr = "";
     else {
@@ -431,10 +449,12 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
     else if (nContentLen == 3 && ::memcmp(szContent, "1.0", nContentLen) == 0) {
       *(bool*)pDataAddr = true;
     } else {
-      throw JsonParseError("Bool Type parse error, content:" + String(szContent, nContentLen));
+      LOG_ERROR("Bool Type parse error, content:%.*s", nContentLen, szContent);
+      return false;
     }
   } else {
-      throw JsonParseError("Unknow Type " + Demangle(tinfo.name()));
+    LOG_ERROR("Unknow Type %s", Demangle(tinfo.name()).c_str());
+    return false;
   }
   return true;
 }
@@ -486,7 +506,10 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
     }
   } else {
     const Class* pClass = Class::GetClass(tInfo);
-    if (pClass == nullptr) throw JsonWriteError("Unknow Type:" + Demangle(tInfo.name()));
+    if (pClass == nullptr) {
+      LOG_ERROR("Unknow Type:%s", Demangle(tInfo.name()).c_str());
+      return "";
+    }
     if (pJsonClass->IsSuperOf(*pClass)) {
       JsonBase* pJson = (JsonBase*)pData;
       return pJson->ToJsonString();
@@ -515,7 +538,10 @@ String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) {
 
       JsonBase* pJson = nullptr;
       if (pFieldClass && pJsonClass->IsSuperOf(*pFieldClass) && ((JsonBase*)((char*)pAddr + pField->GetOffset()))->GetJsonType() != EJsonObj) {
-        if (nElementCount != 1) throw JsonWriteError("multi elements, json field:" + String(pField->GetName()));
+        if (nElementCount != 1) {
+          LOG_ERROR("multi elements, json field:%s", pField->GetName());
+          continue;
+        }
         pJson = (JsonBase*)((char*)pAddr + pField->GetOffset());
         if (pJson->IsEmpty()) continue;
       }

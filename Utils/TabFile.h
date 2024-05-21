@@ -327,6 +327,7 @@ class TabFile {
         pAddr[nCount - 1] = 0;
         if (isize < nCount) pAddr[isize] = 0;
       }
+      return true;
     } else if (eType == typeid(uint8_t)) {
       return ConvertStr2Field<uint8_t>(pObj, str, field, atoi);
     } else if (eType == typeid(int16_t)) {
