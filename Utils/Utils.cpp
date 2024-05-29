@@ -1,4 +1,4 @@
-#include "Utils.h"
+﻿#include "Utils.h"
 #include "Log.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
 #  include <windows.h>
@@ -475,7 +475,98 @@ void Utils::FindFiles(const String& strPattern, bool bRecursive, std::vector<Str
   }
 }
 
- WeakPtrArray::WeakPtrArray(uint32_t uCapacity) : mCapacity(uCapacity), mCount(0) {
+int32_t NextWordLen(const char* str) {
+  uint8_t* strIn = (uint8_t*)str;
+  int32_t len = (int32_t)strlen(str);
+
+  if (strIn[0] < 0x80) {
+    return 1;
+  }
+
+  if (len >= 2 && strIn[0] >= 0xC2 && strIn[0] < 0xE0 && strIn[1] >> 6 == 2) {
+    return 2;
+  }
+
+  if (len >= 3 && strIn[0] >> 4 == 14 && strIn[1] >> 6 == 2 && strIn[2] >> 6 == 2 && (strIn[0] > 0xE0 || strIn[1] >= 0xA0)) {
+    return 3;
+  }
+
+  if (len >= 4 && strIn[0] >> 3 == 30 && strIn[1] >> 6 == 2 && strIn[2] >> 6 == 2 && strIn[3] >> 6 == 2 && strIn[0] <= 0xF4 && (strIn[0] > 0xF0 || strIn[1] >= 0x90)) {
+    return 4;
+  }
+
+  return len >= 2 ? 2 : len;
+}
+
+bool Utils::IsUtf8AllChinese(const char* pStr) {
+  while (pStr[0]) {
+    uint32_t uCode = 0;
+    int32_t nWordLen = NextWordLen(pStr);
+    if (nWordLen <= 2) {
+      return false;
+    }
+    // UTF8 转 unicode
+    uint8_t uFlag = (((1 << nWordLen) - 1) << (8 - nWordLen));
+    uFlag = ~uFlag;
+    for (int32_t i = nWordLen - 1; i > 0; i--) {
+      uCode |= ((uint32_t)((uint8_t)pStr[i] & 0x3F) << ((nWordLen - i - 1) * 6));
+    }
+    uCode |= ((uint32_t)((uint8_t)pStr[0] & uFlag) << ((nWordLen - 1) * 6));
+
+    bool bChinese = false;
+    if (uCode >= 0x4E00 && uCode <= 0x9FCB       // 基本汉字 + 基本汉字补充
+        || uCode >= 0x3400 && uCode <= 0x4DB5    // 扩展A
+        || uCode >= 0x20000 && uCode <= 0x2A6D6  // 扩展B
+        || uCode >= 0x2A700 && uCode <= 0x2B734  // 扩展C
+        || uCode >= 0x2B740 && uCode <= 0x2B81D  // 扩展D
+        || uCode >= 0x2F00 && uCode <= 0x2FD5    // 康熙部首
+        || uCode >= 0x2E80 && uCode <= 0x2EF3    // 部首扩展
+        || uCode >= 0xF900 && uCode <= 0xFAD9    // 兼容汉字
+        || uCode >= 0xE815 && uCode <= 0xE86F    // PUA(GBK)部件
+        || uCode >= 0xE400 && uCode <= 0xE5E8    // 部件扩展
+        || uCode >= 0xE600 && uCode <= 0xE6CF    // PUA增补
+        || uCode >= 0x31C0 && uCode <= 0x31E3    // 汉字笔画
+        || uCode >= 0x2FF0 && uCode <= 0x2FFB    // 汉字结构
+        || uCode >= 0x3105 && uCode <= 0x3120    // 汉语注音
+        || uCode >= 0x31A0 && uCode <= 0x31BA    // 注音扩展
+        || uCode == 0x3007) {
+      bChinese = true;
+    }
+    if (bChinese == false) {
+      return false;
+    }
+
+    pStr += nWordLen;
+  }
+  return true;
+}
+
+bool Utils::IsUtf8(const char* pStr) {
+  if (pStr == nullptr) {
+    return false;
+  }
+  int32_t len = (int32_t)strlen(pStr);
+  while (pStr[0]) {
+    uint8_t* strIn = (uint8_t*)pStr;
+    int32_t nWordLen = 0;
+    if (strIn[0] < 0x80) {
+      nWordLen = 1;
+    } else if (len >= 2 && strIn[0] >= 0xC2 && strIn[0] < 0xE0 && strIn[1] >> 6 == 2) {
+      nWordLen = 2;
+    } else if (len >= 3 && strIn[0] >> 4 == 14 && strIn[1] >> 6 == 2 && strIn[2] >> 6 == 2 && (strIn[0] > 0xE0 || strIn[1] >= 0xA0)) {
+      nWordLen = 3;
+    } else if (len >= 4 && strIn[0] >> 3 == 30 && strIn[1] >> 6 == 2 && strIn[2] >> 6 == 2 && strIn[3] >> 6 == 2 && strIn[0] <= 0xF4 && (strIn[0] > 0xF0 || strIn[1] >= 0x90)) {
+      nWordLen = 4;
+    } else {
+      return false;
+    }
+    pStr += nWordLen;
+    len -= nWordLen;
+  }
+  return true;
+}
+
+WeakPtrArray::WeakPtrArray(uint32_t uCapacity) : mCapacity(uCapacity), mCount(0) {
   if (mCapacity == 0) mCapacity = 1;
    mItems = new Item*[mCapacity];
    for (uint32_t i = 0; i < mCapacity; i++) {

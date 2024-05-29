@@ -29,6 +29,8 @@ class Utils {
     if (szInput && (szRes = (char*)malloc(strlen(szInput) + 1))) strcpy(szRes, szInput);
     return szRes;
   }
+  static bool IsUtf8AllChinese(const char* pStr);
+  static bool IsUtf8(const char* pStr);
 };
 
 class WeakPtrArray {
