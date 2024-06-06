@@ -46,6 +46,12 @@ source_group(Fasterjson\ Files
 	${Fasterjson_Files_Sources}
 )
 
+FILE(GLOB Phys_Files_Sources "Phys/*.*")
+source_group(Phys\ Files
+	FILES
+	${Phys_Files_Sources}
+)
+
 set(${PROJECT_NAME}_All_Sources
 	${Source_Files_Sources}
 	${Header_Files_Sources}
@@ -55,6 +61,7 @@ set(${PROJECT_NAME}_All_Sources
 	${Fasterjson_Files_Sources}
 	${Log_Files_Sources}
 	${Network_Files_Sources}
+	${Phys_Files_Sources}
 )
 set(${PROJECT_NAME}_Local_Include_Dirs
 	./
@@ -64,4 +71,5 @@ set(${PROJECT_NAME}_Local_Include_Dirs
 	Fasterjson
 	Log
 	Network
+	Phys
 )
