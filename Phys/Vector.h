@@ -167,6 +167,8 @@ struct Quat {
   FORCEINLINE double Length() const { return ::sqrt(X * X + Y * Y + Z * Z + W * W); }
   // 叉乘
   FORCEINLINE Quat operator^(const Quat& V) const {
+    //q1 = w1 + v1, q2 = w2 + v2
+    //q1^q2 = w1*w2 - v1 | v2 + w1*v2 + w2*v1 + v1 ^ v2
     return Quat(W * V.X + X * V.W + Y * V.Z - Z * V.Y, W * V.Y + Y * V.W + Z * V.X - X * V.Z, W * V.Z + Z * V.W + X * V.Y - Y * V.X, W * V.W - X * V.X - Y * V.Y - Z * V.Z);
   }
   // 点乘
