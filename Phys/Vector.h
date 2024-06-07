@@ -150,6 +150,13 @@ struct Quat {
     W = dC;
   }
 
+  FORCEINLINE Quat(const Vector3D V) {
+    X = V.mX;
+    Y = V.mY;
+    Z = V.mZ;
+    W = 0;
+  }
+
   // 共轭四元数
   FORCEINLINE Quat Conjugate() const { return Quat(-X, -Y, -Z, W); }
   // 求逆
@@ -240,6 +247,13 @@ struct Quat {
     }
     return false;
   }
+
+  //对向量进行旋转，要求当前的四元数已经进行归一化
+  FORCEINLINE Vector3D Rotate(const Vector3D& V) const {
+    Quat QV(V);
+    Quat Res = *this ^ QV ^ Conjugate();
+    return Vector3D(Res.X, Res.Y, Res.Z);
+  }
 };
 
 //总是以自身为参考系内旋，旋转顺序是Yaw->Pitch->Roll, 其中Yaw为左手系，Pitch和Roll为右手系
@@ -321,7 +335,7 @@ struct Rotator {  // 参考虚幻的代码
     return (PhysMath::Abs(NormalizeAxis(Pitch - R.Pitch)) <= Tolerance) && (PhysMath::Abs(NormalizeAxis(Yaw - R.Yaw)) <= Tolerance) && (PhysMath::Abs(NormalizeAxis(Roll - R.Roll)) <= Tolerance);
   }
 
-  // 向前的向量， rotate处理后的情形
+  // 向前的向量， rotate处理后的情形, 其它两个轴，可以使用四元数rotate
   FORCEINLINE Vector3D VectorForward() const {
     const double PitchNoWinding = PhysMath::Mod(Pitch, 360.0);
     const double YawNoWinding = PhysMath::Mod(Yaw, 360.0);
@@ -329,28 +343,6 @@ struct Rotator {  // 参考虚幻的代码
     PhysMath::SinCos(&SP, &CP, PhysMath::DegreesToRadians(PitchNoWinding));
     PhysMath::SinCos(&SY, &CY, PhysMath::DegreesToRadians(YawNoWinding));
     return Vector3D(CP * CY, CP * SY, SP);
-  }
-  //向右向量，旋转处理后的情形
-  FORCEINLINE Vector3D VectorRight() const {
-    const double RollNoWinding = PhysMath::Mod(Roll, 360.0);
-    const double YawNoWinding = PhysMath::Mod(Yaw, 360.0);
-    double CR, SR, CY, SY;
-    PhysMath::SinCos(&SR, &CR, PhysMath::DegreesToRadians(RollNoWinding));
-    PhysMath::SinCos(&SY, &CY, PhysMath::DegreesToRadians(YawNoWinding));
-    return Vector3D(-SY * CR, CY * CR, -SR);
-  }
-  //处理后， 向上向量经过旋转后的情形
-  FORCEINLINE Vector3D VectorUp() const { 
-    const double PitchNoWinding = PhysMath::Mod(Pitch, 360.0);
-    const double YawNoWinding = PhysMath::Mod(Yaw, 360.0);
-    const double RollNoWinding = PhysMath::Mod(Roll, 360.0);
-    double CP, SP, CY, SY, CR, SR;
-    PhysMath::SinCos(&SP, &CP, PhysMath::DegreesToRadians(PitchNoWinding));
-    PhysMath::SinCos(&SY, &CY, PhysMath::DegreesToRadians(YawNoWinding));
-    PhysMath::SinCos(&SR, &CR, PhysMath::DegreesToRadians(RollNoWinding));
-    //mY * oth.mZ - mZ * oth.mY, mZ * oth.mX - mX * oth.mZ, mX * oth.mY - mY * oth.mX
-    //Vector3D(CP * CY, CP * SY, SP) ^ Vector3D(-SY * CR, CY * CR, -SR);
-    return Vector3D(-CP * SY * SR - SP * CY * CR, -SP * SY * CR + CP * CY * SR, CP * CY * CY * CR + CP * SY * SY * CR);
   }
 
   FORCEINLINE Quat Quaternion() const {
