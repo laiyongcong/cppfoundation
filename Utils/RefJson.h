@@ -29,7 +29,7 @@ class JsonBase {
     const Class* pClass = Class::GetClass(typeid(T));
     if (pClass == nullptr) {
       LOG_ERROR("Unknow Type:%s",  Demangle(typeid(T).name()).c_str());
-      return false;
+      return "";
     }
     return ToJsonString(pObj, *pClass);
   }
