@@ -170,8 +170,9 @@ void Thread::Stop() {
     --mRunningFlag;
     return;
   }
-  std::unique_lock<std::mutex> lck(mQueueLock);
+  mQueueLock.lock();
   mQueueReady.notify_all();
+  mQueueLock.unlock();
   if (GetCurrentThread() != this && mThread.joinable()) mThread.join();
  }
 
