@@ -297,8 +297,9 @@ void ThreadPool::Stop() {
     --mRunningFlag;
     return;
   }
-  std::unique_lock<std::mutex> lck(mQueueLock);
+  mQueueLock.lock();
   mQueueReady.notify_all();
+  mQueueLock.unlock();
   for (int32_t i = 0; i < mThreadNum; i++) {
     mThreads[i].Stop();
   }
