@@ -228,7 +228,6 @@ class ThreadPool {
   String mName;
   int32_t mThreadNum;
   std::atomic_int mRunningFlag;
-  std::atomic_int32_t mBroadCastNum;
 };
 
 class StepsTask {

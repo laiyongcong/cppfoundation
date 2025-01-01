@@ -442,7 +442,11 @@ bool JsonBase::Content2Field(void* pDataAddr, const std::type_info& tinfo, uint3
     else if (nContentLen == 1) {
       bool bVal = atoi(szContent) > 0;
       *(bool*)pDataAddr = bVal;
-    } 
+    } else if (nContentLen == 4 && tstrnicmp("true", szContent, nContentLen) == 0) {
+      *(bool*)pDataAddr = true;
+    } else if (nContentLen == 5 && tstrnicmp("false", szContent, nContentLen) == 0) {
+      *(bool*)pDataAddr = false;
+    }
     else if (nContentLen == 3 && ::memcmp(szContent, "0.0", nContentLen) == 0) {
       *(bool*)pDataAddr = false;
     } 

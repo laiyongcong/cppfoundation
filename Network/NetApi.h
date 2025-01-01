@@ -22,6 +22,7 @@
 #  define EPOLLHUP 16      // 表示对应的文件描述符被挂断；
 #  define EPOLLET 32       // 将EPOLL设为边缘触发(Edge Triggered)模式，这是相对于水平触发(Level Triggered)来说的。
 #  define EPOLLONESHOT 64  // 只监听一次事件，当监听完这次事件之后，如果还需要继续监听这个socket的话，需要再次把这个socket加入到EPOLL队列里
+#  define EPOLLRDHUP 128
 
 #  define EPOLL_CTL_ADD 1
 #  define EPOLL_CTL_MOD 2

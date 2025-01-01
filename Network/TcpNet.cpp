@@ -118,11 +118,13 @@ class NetThread : public Thread {
     int nErrCode;
     uint64_t uTime = Utils::GetCurrentTime();
     RunTask();
+    int nWaitTime = 1;
+    if (mConnecters.Size() == 0) nWaitTime = 5;
     if (mConnecters.Size() == 0 && mListenFd == INVALID_SOCKET) {
       if (Utils::GetCurrentTime() == uTime) Thread::Milisleep(1);
       return;
     }
-    int nFds = epoll_wait(mEpfd, mEvents, sizeof(mEvents) / sizeof(epoll_event), 1);
+    int nFds = epoll_wait(mEpfd, mEvents, sizeof(mEvents) / sizeof(epoll_event), nWaitTime);
     if (nFds < 0) {
       ESockErrorType eErrType = SocketAPI::GetSocketError(strErr, nErrCode);
       if (eErrType == ESockErrorType_Eintr) {
@@ -145,18 +147,33 @@ class NetThread : public Thread {
       if (ev.events & EPOLLOUT) {
         epoll_event newEv;
         newEv.data.ptr = pConn;
-        newEv.events = EPOLLIN | EPOLLET;
-        pConn->mIO->mEpFlag = EPOLLIN;
+        newEv.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLHUP | EPOLLERR | EPOLLET;
+        pConn->mIO->mEpFlag = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLHUP | EPOLLERR;
         epoll_ctl(mEpfd, EPOLL_CTL_MOD, pConn->mSock, &newEv);  // 取消EPOLLOUT， 否则可能没有数据的情况下一直可写
         
         if (!ProcessOutput(pConn)) {
           ProcessNetError(pConn);
+          continue;
         }
       }
-      if (ev.events & EPOLLIN || ev.events & EPOLLERR || ev.events & EPOLLHUP) {
+      if (ev.events & EPOLLIN ) {
         if (!ProcessInput(pConn)) {
           ProcessNetError(pConn);
+          continue;
         }
+      }
+      if (ev.events & EPOLLERR || ev.events & EPOLLHUP) {
+        LOG_WARNING("epoll err, %s", pConn->Info().c_str());
+        ProcessInput(pConn);
+        ProcessNetError(pConn, "epollerr or epollhup");
+        continue;
+      }
+
+      if (ev.events & EPOLLRDHUP) {
+        LOG_WARNING("%s remote end closed or half-closed the connection", pConn->Info().c_str());
+        ProcessInput(pConn);
+        ProcessNetError(pConn, "EPOLLRDHUP");
+        continue;
       }
     }
   }
@@ -214,11 +231,11 @@ class NetThread : public Thread {
 
   void AddConnecter(Connecter* pConn) {
     Dispatch([=]() {
-      pConn->mIO->mEpFlag = EPOLLIN;
+      pConn->mIO->mEpFlag = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLHUP | EPOLLERR;
       pConn->mIO->mRecvingHeader.reset(new PackImp(mEngine->mDecoder->GetHeaderSize(), mEngine->mDecoder));
       epoll_event ev;
       ev.data.ptr = pConn;
-      ev.events = EPOLLIN | EPOLLET;
+      ev.events = EPOLLIN | EPOLLRDHUP | EPOLLPRI | EPOLLHUP | EPOLLERR | EPOLLET;
       epoll_ctl(mEpfd, EPOLL_CTL_ADD, pConn->mSock, &ev);
       mConnecters.Add(pConn);
       mEngine->OnConnecterCreate(pConn);

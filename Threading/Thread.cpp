@@ -250,10 +250,9 @@ void Thread::Routine(Thread* pThread) noexcept {
       while (pThread->mPool->mRunningFlag > 0) {
         {
           std::unique_lock<std::mutex> lck(pThread->mPool->mQueueLock);
-          pThread->mPool->mQueueReady.wait(lck, [=]() { return pThread->mPool->mRunningFlag <= 0 || !pThread->mPool->mTaskQueue.IsEmpty() || pThread->mPool->mBroadCastNum > 0; });
+          pThread->mPool->mQueueReady.wait(lck, [=]() { return pThread->mPool->mRunningFlag <= 0 || !pThread->mPool->mTaskQueue.IsEmpty() || !pThread->mTaskQueue.IsEmpty(); });
         }
         pThread->mPool->RunTask();
-        pThread->mPool->mBroadCastNum -= pThread->RunTask();
       }
   }
   
@@ -264,7 +263,7 @@ void Thread::Routine(Thread* pThread) noexcept {
 
 ThreadData Thread::sThreadData(nullptr);
 
- ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr) {
+ ThreadPool::ThreadPool(int32_t nThreadNum) : mThreadNum(nThreadNum), mThreads(nullptr),mRunningFlag(0) {
   if (mThreadNum <= 0) mThreadNum = 1;
   mThreads = new Thread[mThreadNum];
   for (int32_t i = 0; i < mThreadNum; i++) {
@@ -323,7 +322,6 @@ void ThreadPool::Async(const std::function<void()>& func, const std::function<vo
 
 void ThreadPool::BroadCast(const std::function<void()>& func) {
   for (int32_t i = 0; i < mThreadNum; i++) {
-    mBroadCastNum++;
     mThreads[i].mTaskQueue.Enqueue(func);
   }
   {
