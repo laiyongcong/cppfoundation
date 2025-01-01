@@ -253,6 +253,7 @@ void Thread::Routine(Thread* pThread) noexcept {
           pThread->mPool->mQueueReady.wait(lck, [=]() { return pThread->mPool->mRunningFlag <= 0 || !pThread->mPool->mTaskQueue.IsEmpty() || !pThread->mTaskQueue.IsEmpty(); });
         }
         pThread->mPool->RunTask();
+        pThread->RunTask();
       }
   }
   
