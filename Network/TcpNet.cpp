@@ -156,7 +156,7 @@ class NetThread : public Thread {
           continue;
         }
       }
-      if (ev.events & EPOLLIN ) {
+      if (ev.events & EPOLLIN || ev.events & EPOLLPRI) {
         if (!ProcessInput(pConn)) {
           ProcessNetError(pConn);
           continue;
