@@ -242,12 +242,21 @@ class NetThread : public Thread {
     });
   }
 
+  void AddClientConnecter(std::shared_ptr<Connecter> pConn) {
+    Dispatch([=]() {
+      if (pConn.get() == nullptr) return;
+      mClientConnecters[pConn->GetConnecterID()] = pConn;
+    });
+  }
+
   void ProcessNetError(Connecter* pConn, const String& strUserErr = "") {
     if (!mConnecters.IsContain(pConn)) return;
     mConnecters.Del(pConn);
-    std::shared_ptr<Connecter> connPtr(pConn, [=](Connecter* ptr) {  delete pConn; });//让connecter在正确的时机被delete
+    std::shared_ptr<Connecter> connPtr(pConn, [=](Connecter* ptr) {  if(!ptr->mIsCreatedByClient) delete ptr; });//让connecter在正确的时机被delete
+    mClientConnecters.erase(pConn->GetConnecterID());
     epoll_ctl(mEpfd, EPOLL_CTL_DEL, pConn->mSock, NULL);
     mEngine->OnConnecterClose(connPtr, strUserErr);
+    pConn->mNetThread = nullptr;
   }
 
   bool ProcessOutput(Connecter* pConn) { 
@@ -389,9 +398,10 @@ class NetThread : public Thread {
   SOCKET mListenFd;
   WeakPtrArray mConnecters;
   uint32_t mHeaderSize;
+  std::map<uint32_t, std::shared_ptr<Connecter>> mClientConnecters;
 };
 
- Connecter::Connecter() : mNetThread(nullptr), mSock(INVALID_SOCKET), mPeerPort(-1) { 
+ Connecter::Connecter() : mNetThread(nullptr), mSock(INVALID_SOCKET), mPeerPort(-1), mIsCreatedByClient(false) { 
    static std::atomic_uint sConnecterID(0);
    mConnecterID = sConnecterID++;
    mIO = new NetIOInfo;
@@ -444,6 +454,12 @@ bool Connecter::Send(std::shared_ptr<Pack> pPack) {
   std::shared_ptr<PackImp> pPackImp = std::make_shared<PackImp>(pPack, pDecoder);
   mIO->mSendBuff.Enqueue(pPackImp);
   mNetThread->ProcessSend(this);
+  return true;
+}
+
+bool Connecter::IsValid() const {
+  if (mSock == INVALID_SOCKET) return false;
+  if (mNetThread == nullptr) return false;
   return true;
 }
 
@@ -584,7 +600,10 @@ std::shared_ptr<Connecter> TcpEngine::Connect(const char* szHost, int nPort, int
   pConn->mIO->mRecvCryptoSeed = mRecvCryptoSeed;
 
   pNetThread->AddConnecter(pConn);
-  return std::shared_ptr<Connecter>(pConn, [](Connecter* pConn){}); //被NetThread管理的Connecter不需要被外部delete
+  pConn->mIsCreatedByClient = true;
+  auto pResConn = std::shared_ptr<Connecter>(pConn);
+  pNetThread->AddClientConnecter(pResConn);
+  return pResConn;
 }
 
 bool TcpClient::Connect(SOCKET& sock, const char* szHost, int nPort, int* pMicroTimeout, bool bLingerOn /* = true*/, uint32_t uLinger /*= 0*/, int nClientPort /*= 0*/) {

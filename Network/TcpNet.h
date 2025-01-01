@@ -36,6 +36,7 @@ class Connecter : public NonCopyable, public WeakPtrArray::Item {
   FORCEINLINE int GetPeerPort() const { return mPeerPort; }
   void Kick(const String& strMsg);
   bool Send(std::shared_ptr<Pack> pPack); //自定义包头，需要自行打包，然后使用这个接口发送
+  bool IsValid() const;
  private:
   SOCKET mSock;
   String mPeerIp;
@@ -43,6 +44,7 @@ class Connecter : public NonCopyable, public WeakPtrArray::Item {
   uint32_t mConnecterID;
   NetThread* mNetThread;
   NetIOInfo* mIO;
+  bool mIsCreatedByClient; //从客户端发起创建的链接
 };
 
 class TcpEngine : public NonCopyable {
