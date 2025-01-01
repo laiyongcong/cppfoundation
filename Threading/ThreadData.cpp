@@ -1,9 +1,6 @@
 #include "ThreadData.h"
 #include "Utils.h"
 #if CPPFD_PLATFORM == CPPFD_PLATFORM_WIN32
-#  ifndef WIN32_LEAN_AND_MEAN
-#    define WIN32_LEAN_AND_MEAN
-#  endif
 #  include <windows.h>
 #endif
 
