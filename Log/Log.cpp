@@ -247,4 +247,11 @@ const char* Log::GetFuncName(const char* szFuncName) {
   return szFuncName + nPos;
 }
 
+void Log::FlushAndAbort() {
+  if (gLogInstance) {
+    Destroy();
+  }
+  abort();
+}
+
 }

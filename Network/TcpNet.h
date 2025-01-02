@@ -45,6 +45,7 @@ class Connecter : public NonCopyable, public WeakPtrArray::Item {
   NetThread* mNetThread;
   NetIOInfo* mIO;
   bool mIsCreatedByClient; //从客户端发起创建的链接
+  bool mIsValid;
 };
 
 class TcpEngine : public NonCopyable {

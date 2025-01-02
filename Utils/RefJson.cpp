@@ -524,7 +524,7 @@ String JsonBase::Field2Json(const void* pData, const std::type_info& tInfo) {
   return String(tmpBuff);
 }
 
-String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) { 
+String JsonBase::ToJsonString(const void* pAddr, const Class& refClass, std::function<bool(const Field*)> filterFunc /*= nullptr*/) { 
   const static Class* pJsonClass = Class::GetClass(typeid(JsonBase));
   if (pJsonClass->IsSuperOf(refClass)) return ((JsonBase*)pAddr)->ToJsonString();
 
@@ -536,6 +536,7 @@ String JsonBase::ToJsonString(const void* pAddr, const Class& refClass) {
     const FieldList& fields = pClass->GetFields();
     for (size_t i = 0, isize = fields.size(); i < isize; i++) {
       const Field* pField = fields[i];
+      if (filterFunc != nullptr && !filterFunc(pField)) continue; 
       const std::type_info& elementType = pField->GetElementType();
       int nElementCount = pField->GetElementCount();
       const Class* pFieldClass = Class::GetClass(elementType);

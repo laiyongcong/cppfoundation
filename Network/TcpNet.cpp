@@ -256,7 +256,7 @@ class NetThread : public Thread {
     mClientConnecters.erase(pConn->GetConnecterID());
     epoll_ctl(mEpfd, EPOLL_CTL_DEL, pConn->mSock, NULL);
     mEngine->OnConnecterClose(connPtr, strUserErr);
-    pConn->mNetThread = nullptr;
+    connPtr->mIsValid = false;
   }
 
   bool ProcessOutput(Connecter* pConn) { 
@@ -401,7 +401,7 @@ class NetThread : public Thread {
   std::map<uint32_t, std::shared_ptr<Connecter>> mClientConnecters;
 };
 
- Connecter::Connecter() : mNetThread(nullptr), mSock(INVALID_SOCKET), mPeerPort(-1), mIsCreatedByClient(false) { 
+ Connecter::Connecter() : mNetThread(nullptr), mSock(INVALID_SOCKET), mPeerPort(-1), mIsCreatedByClient(false), mIsValid(true) { 
    static std::atomic_uint sConnecterID(0);
    mConnecterID = sConnecterID++;
    mIO = new NetIOInfo;
@@ -460,7 +460,7 @@ bool Connecter::Send(std::shared_ptr<Pack> pPack) {
 bool Connecter::IsValid() const {
   if (mSock == INVALID_SOCKET) return false;
   if (mNetThread == nullptr) return false;
-  return true;
+  return mIsValid;
 }
 
 void Connecter::Kick(const String& strMsg) {

@@ -1,4 +1,4 @@
-#pragma  once
+﻿#pragma  once
 #include "RefelectionHelper.h"
 #include "Log.h"
 
@@ -21,17 +21,19 @@ class JsonBase {
   
   virtual bool IsEmpty() const = 0;
 
+  virtual void CleanUp() = 0;
+
   static bool IsBuildInType(const std::type_info& tinfo);
 
   template<typename T>
-  static String ToJsonString(T* pObj) {
+  static String ToJsonString(T* pObj, std::function<bool(const Field*)> filterFunc = nullptr) {
     if (pObj == nullptr) return "";
     const Class* pClass = Class::GetClass(typeid(T));
     if (pClass == nullptr) {
       LOG_ERROR("Unknow Type:%s",  Demangle(typeid(T).name()).c_str());
       return "";
     }
-    return ToJsonString(pObj, *pClass);
+    return ToJsonString(pObj, *pClass, filterFunc);
   }
 
   template<typename T>
@@ -45,16 +47,17 @@ class JsonBase {
     return FromJsonString(pObj, *pClass, strJson);
   }
 
-  static String ToJsonString(const void* pAddr, const Class& refClass);
+  static String ToJsonString(const void* pAddr, const Class& refClass, std::function<bool(const Field*)> filterFunc = nullptr);
   static bool FromJsonString(void* pAddr, const Class& refClass, const String& strJson);
-
- protected:
   static bool Content2Field(void* pDataAddr, const std::type_info& tinfo, uint32_t nCount, const char* szContent, uint32_t nContentLen);
-  static String Field2Json(const void* pData, const std::type_info& tInfo);
 
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") = 0;
   virtual void* NewItem() const = 0;
   virtual void AddItem(void* pItem, const String& strKey = "") = 0;
+  virtual void DeleteItemPtr(void* pItem) const = 0; //与NewItem相对应，若new出来的没有被AddItem，需要使用该函数delete
+
+ protected:
+  static String Field2Json(const void* pData, const std::type_info& tInfo);
 };
 
 template<typename T>
@@ -81,7 +84,7 @@ class JsonArray : public JsonBase {
   }
   
   virtual bool IsEmpty() const override { return mItems.empty(); }
- protected:
+  virtual void CleanUp() override { mItems.clear(); }
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") override {
     if (!IsBuildInType(typeid(T))) {
       LOG_ERROR("Error Additem for type:%s", Demangle(typeid(T).name()).c_str());
@@ -101,6 +104,10 @@ class JsonArray : public JsonBase {
       return;
     }
     mItems.push_back(*pTItem);
+    delete pTItem;
+  }
+  virtual void DeleteItemPtr(void* pItem) const override {
+    T* pTItem = static_cast<T*>(pItem);
     delete pTItem;
   }
  public:
@@ -131,7 +138,7 @@ class JsonMap : public JsonBase {
   }
 
   virtual bool IsEmpty() const override { return mObjMap.empty(); }
- protected:
+  virtual void CleanUp() override { mObjMap.clear(); }
   virtual bool AddItemByContent(const char* szContent, uint32_t uLen, const String& strKey = "") override {
     if (!IsBuildInType(typeid(T))) {
       LOG_ERROR("Error Additem for type:%s", Demangle(typeid(T).name()).c_str());
@@ -159,6 +166,10 @@ class JsonMap : public JsonBase {
       return;
     }
     mObjMap[strKey] = *pTItem;
+    delete pTItem;
+  }
+  virtual void DeleteItemPtr(void* pItem) const override {
+    T* pTItem = static_cast<T*>(pItem);
     delete pTItem;
   }
  public:

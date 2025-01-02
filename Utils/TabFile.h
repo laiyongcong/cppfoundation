@@ -57,23 +57,12 @@ class TabFile {
     return bret;
   }
 
-  bool Save(const char* szTabFile) const {
-    if (szTabFile == nullptr || szTabFile[0] == 0) {
-      LOG_WARNING("empty file name");
-      return false;
-    }
+  String ToString() const {
     const Class* pClass = Class::GetClass(typeid(T));
     if (pClass == nullptr) {
-      LOG_WARNING("No Reflection info of:%s while saving file:%s", Demangle(typeid(T).name()).c_str(), szTabFile);
-      return false;
+      LOG_WARNING("No Reflection info of:%s", Demangle(typeid(T).name()).c_str());
+      return "";
     }
-
-    FILE* fp = fopen(szTabFile, "wb");
-    if (nullptr == fp) {
-      LOG_ERROR("open file:%s failed!", szTabFile);
-      return false;
-    }
-
     std::ostringstream outStream;
     const FieldList& fields = pClass->GetFields();
     for (size_t i = 0, isize = fields.size(); i < isize; i++) {
@@ -95,15 +84,14 @@ class TabFile {
         if (pElementClass != nullptr) {
           if (nCount != 1) {
             LOG_WARNING("type:%s array is not supported!", Demangle(eType.name()).c_str());
-            fclose(fp);
-            return false;
+            return "";
           }
           String strJson = JsonBase::ToJsonString((const void*)((char*)&it + pField->GetOffset()), *pElementClass);
           outStream << "\"" << Utils::StringExcapeChar(strJson, '"') << "\"";
           if (i != isize - 1) outStream << Delim;
           continue;
         }
-        
+
         if (nCount > 1) outStream << "\"";
         if (eType == typeid(int8_t)) {
           for (int j = 0; j < nCount; j++) {
@@ -211,16 +199,33 @@ class TabFile {
           }
         } else {
           LOG_WARNING("unknow field type:%s", Demangle(eType.name()).c_str());
-          fclose(fp);
-          return false;
+          return "";
         }
         if (nCount > 1) outStream << "\"";
         if (i != isize - 1) outStream << Delim;
       }
       outStream << "\n";
     }
+    return outStream.str();
+  }
 
-    fwrite(outStream.str().c_str(), outStream.str().size(), 1, fp);
+  bool Save(const char* szTabFile) const {
+    if (szTabFile == nullptr || szTabFile[0] == 0) {
+      LOG_WARNING("empty file name");
+      return false;
+    }
+    FILE* fp = fopen(szTabFile, "wb");
+    if (nullptr == fp) {
+      LOG_ERROR("open file:%s failed!", szTabFile);
+      return false;
+    }
+
+    String strCsv = ToString();
+    if (strCsv == "") {
+      fclose(fp);
+      return false;
+    }
+    fwrite(strCsv.c_str(), strCsv.size(), 1, fp);
     fclose(fp);
     return true;
   }
@@ -344,6 +349,7 @@ class TabFile {
       return ConvertStr2Field<uint64_t>(pObj, str, field, atoll);
     } else if (eType == typeid(String)) {
       ConvertStringToVector(str.c_str(), vRet, ',', false);
+      if (vRet.empty()) vRet.push_back(str);
       for (int i = 0, nSize = (int)vRet.size(); i < nCount && i < nSize; i++) field.SetByIdx(pObj, Utils::StringUnExcapeChar(vRet[i], '"'), i);
       return true;
     } else if (eType == typeid(float)) {
@@ -354,6 +360,7 @@ class TabFile {
       String strTmp = str;
       Utils::String2LowerCase(strTmp);
       ConvertStringToVector(strTmp.c_str(), vRet, ',', false);
+      if (vRet.empty()) vRet.push_back(str);
       for (int i = 0, nSize = (int)vRet.size(); i < nCount && i < nSize; i++) {
         bool bVal = false;
         if (vRet[i] == "true")
