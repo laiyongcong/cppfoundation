@@ -61,6 +61,7 @@ class NetThread : public Thread {
     uint32_t uConnecterNum = mConnecters.Size();
     for (uint32_t i = 0; i < uConnecterNum; i++) {
       Connecter* pConn = (Connecter*)mConnecters.Get(i);
+      if (pConn->mIsCreatedByClient) continue;
       delete pConn;
     }
     mConnecters.Clear();
